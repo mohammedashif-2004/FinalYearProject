@@ -1,0 +1,142 @@
+users table
+├── id
+├── username
+├── password
+├── role
+└── full_name
+
+student_profiles table          ← student-specific data
+├── id
+├── user_id (links to users)
+├── pr_number
+├── phone_number
+├── year
+├── division
+├── parent_name
+└── parent_phone
+
+teacher_profiles table          ← teacher-specific data
+├── id
+├── user_id (links to users)
+├── division_id (for class teacher)
+└── subject_id (for subject teacher)
+
+
+
+POST http://localhost:8080/api/auth/login
+{
+  "username": "admin",
+  "password": "Admin@1234"
+}
+
+
+
+POST http://localhost:8080/api/admin/students
+{
+  "username": "student001",
+  "password": "Student@123",
+  "fullName": "Mohammed Ashif",
+  "prNumber": "BCA2024001",
+  "phoneNumber": "9876543210",
+  "year": 1,
+  "division": "A",
+  "parentName": "Ahmed Khan",
+  "parentPhone": "9876543211"
+}
+test
+{
+  "username": "student003",
+  "password": "Student@123",
+  "fullName": "Test Student",
+  "prNumber": "BCA2024003",
+  "rollNumber": "03",
+  "phoneNumber": "9876543212",
+  "year": 1,
+  "division": "A",
+  "parentName": "Parent Name",
+  "parentPhone": "9876543213"
+}
+
+
+
+
+
+http://localhost:8080/api/teacher/attendance
+{
+  "year": 3,
+  "division": "B",
+  "date": "2026-03-04",
+  "attendance": {
+    "202308943": true
+  }
+}
+
+{
+  "year": 1,
+  "division": "A",
+  "date": "2026-03-05",
+  "attendance": {
+    "03": true
+  }
+}
+
+
+{
+  "username": "student001",
+  "password": "Student@123",
+  "fullName": "Mohammed Ashif D Doogi",
+  "prNumber": "202308943",
+  "rollNumber": "2305118",
+  "phoneNumber": "7020889542",
+  "year": 3,
+  "division": "B",
+  "parentName": "Kutubuddin N Doogi",
+  "parentPhone": "8483043949"
+}
+
+
+POST http://localhost:8080/api/teacher/notices
+Authorization → Bearer Token → paste the NEW token
+Body:
+{
+  "title": "Mid-Semester Exam",
+  "message": "Exams from March 15-20. Carry ID cards.",
+  "type": "Exam"
+}
+
+
+
+POST /api/admin/bulk/students
+Authorization: Bearer <token>
+Body:
+{
+  "students": [
+    {
+      "srNo": "1",
+      "fullName": "Ajay Krishna",
+      "gender": "MALE",
+      "category": "OBC",
+      "stateOfDomicile": "Goa",
+      "nationality": "Indian",
+      "email": "ajay@gmail.com",
+      "programName": "BCA",
+      "enrollmentId": "2508101",
+      "yearOfJoining": 2025,
+      "prNumber": "Bca2025",
+      "year": 1,
+      "division": "A",
+      "rollNumber": "01"
+    }
+  ]
+}
+
+POST http://localhost:8080/api/admin/bulk/teachers
+
+
+
+POST http://localhost:8080/api/admin/bulk/students/upload
+Authorization: Bearer <token>
+Body: form-data
+  Key:   file
+  Type:  File  ← change from Text to File
+  Value: select your Excel file
