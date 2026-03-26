@@ -196,7 +196,7 @@ export default function SplitLoginPage() {
             align="center"
             sx={{ mb: 5 }}
           >
-            Enter your credentials to continue
+            Enter your credentials to continue (admin/Admin@1234)
           </Typography>
 
           {/* Error Alert */}

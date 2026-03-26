@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import Navbar from "../components/Navbar";
 import * as XLSX from "xlsx";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
 import {
-  Box, Container, Typography, Paper, Stack, Button, Select, MenuItem,
+  Box, Typography, Paper, Stack, Button, Select, MenuItem,
   FormControl, InputLabel, Dialog, DialogContent, DialogActions,
-  TextField, Chip, IconButton, Tabs, Tab,
+  TextField, Chip, IconButton, Tabs, Tab, Alert,
 } from "@mui/material";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -71,12 +72,10 @@ const TYPE_STYLES = {
   Tutorial: { bg: "#fef3c7", color: "#92400e", border: "#fde68a" },
 };
 
-// ─── Mini timetable grid used in both Edit and View All ───────────────────────
 function TimetableGrid({ schedule, timeSlots, onCellClick, onDelete, readOnly = false }) {
   return (
     <Box sx={{ overflowX: "auto" }}>
       <Box sx={{ minWidth: readOnly ? 700 : 900 }}>
-        {/* Header */}
         <Box sx={{ display: "grid", gridTemplateColumns: `${readOnly ? 110 : 150}px repeat(6, 1fr)`, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
           <Box sx={{ p: readOnly ? 1 : 2, borderRight: "1px solid #e2e8f0" }}>
             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 1, fontSize: readOnly ? "0.65rem" : undefined }}>Time</Typography>
@@ -88,7 +87,6 @@ function TimetableGrid({ schedule, timeSlots, onCellClick, onDelete, readOnly = 
           ))}
         </Box>
 
-        {/* Rows */}
         {timeSlots.map((slot, idx) => {
           const isBreak = idx === 3;
           return (
@@ -142,12 +140,11 @@ function TimetableGrid({ schedule, timeSlots, onCellClick, onDelete, readOnly = 
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
 export default function TimeTable() {
   const [allData, setAllData] = useState({});
   const [currentClass, setCurrentClass] = useState("FYBCA");
   const [currentDiv, setCurrentDiv] = useState("A");
-  const [activeTab, setActiveTab] = useState(0); // 0 = Edit, 1 = View All
+  const [activeTab, setActiveTab] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeDay, setActiveDay] = useState(null);
   const [activeSlot, setActiveSlot] = useState(null);
@@ -221,26 +218,26 @@ export default function TimeTable() {
     const rows = timeSlots.map((slot, idx) => {
       const isBreak = idx === 3;
       const cells = DAYS.map((day) => {
-        if (isBreak) return `<td style="background:#fef9e7;text-align:center;font-weight:700;color:#92400e;">☕ Break</td>`;
+        if (isBreak) return `<td style="background:#fef9e7;text-align:center;font-weight:700;color:#92400e;padding:8px;">☕ Break</td>`;
         const entry = sched[`${day}__${slot}`];
-        if (!entry) return `<td style="color:#cbd5e1;text-align:center;font-size:11px;">—</td>`;
+        if (!entry) return `<td style="color:#cbd5e1;text-align:center;font-size:11px;padding:8px;">—</td>`;
         const style = TYPE_STYLES[entry.type];
-        return `<td style="background:${style.bg};padding:6px;border-left:3px solid ${style.color};">
+        return `<td style="background:${style.bg};padding:8px;border-left:3px solid ${style.color};">
           <div style="font-weight:700;color:${style.color};font-size:11px;">${entry.subject}</div>
-          ${entry.teacher ? `<div style="font-size:10px;color:#64748b;">${entry.teacher}</div>` : ""}
-          ${entry.room ? `<div style="font-size:10px;color:#94a3b8;">📍 ${entry.room}</div>` : ""}
+          ${entry.teacher ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">${entry.teacher}</div>` : ""}
+          ${entry.room ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">📍 ${entry.room}</div>` : ""}
         </td>`;
       }).join("");
-      return `<tr><td style="font-weight:700;font-size:11px;color:#475569;background:#f8fafc;padding:6px;white-space:nowrap;">${slot}</td>${cells}</tr>`;
+      return `<tr><td style="font-weight:700;font-size:11px;color:#475569;background:#f8fafc;padding:8px;white-space:nowrap;border:1px solid #e2e8f0;">${slot}</td>${cells}</tr>`;
     }).join("");
 
-    return `<div style="margin-bottom:32px;page-break-after:always;">
-      <h2 style="color:#064e3b;margin-bottom:2px;">${cls} — Division ${div}</h2>
-      <p style="color:#64748b;font-size:12px;margin-bottom:12px;">Academic Year 2025–26 (Even Semester)</p>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    return `<div style="margin-bottom:40px;page-break-after:always;">
+      <h2 style="color:#064e3b;margin-bottom:4px;font-size:18px;">${cls} — Division ${div}</h2>
+      <p style="color:#64748b;font-size:12px;margin-bottom:16px;">Academic Year 2025–26 (Even Semester)</p>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e8f0;">
         <thead><tr>
-          <th style="background:#064e3b;color:white;padding:8px;text-align:center;">Time</th>
-          ${DAYS.map((d) => `<th style="background:#064e3b;color:white;padding:8px;text-align:center;">${d}</th>`).join("")}
+          <th style="background:#064e3b;color:white;padding:10px;text-align:center;border:1px solid #e2e8f0;">Time</th>
+          ${DAYS.map((d) => `<th style="background:#064e3b;color:white;padding:10px;text-align:center;border:1px solid #e2e8f0;">${d}</th>`).join("")}
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -257,179 +254,142 @@ export default function TimeTable() {
     }
     printWindow.document.write(`<!DOCTYPE html><html><head>
       <title>BCA Timetable</title>
-      <style>body{font-family:sans-serif;padding:20px;}td{border:1px solid #e2e8f0;padding:6px;vertical-align:top;min-width:90px;}@media print{body{padding:10px;}}</style>
-      </head><body>${body}<p style="font-size:10px;color:#94a3b8;">Generated from BCA Portal</p></body></html>`);
+      <style>body{font-family:Arial,sans-serif;padding:20px;margin:0;}@media print{body{padding:10px;}}</style>
+      </head><body>${body}<p style="font-size:10px;color:#94a3b8;margin-top:20px;">Generated from BCA Portal • ${new Date().toLocaleDateString()}</p></body></html>`);
     printWindow.document.close();
-    printWindow.print();
+    setTimeout(() => printWindow.print(), 500);
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc" }}>
-      <Navbar />
+    <Box sx={{ display: "flex", height: "100vh", background: "#f1f5f9" }}>
+      <Sidebar activePath="/timetable" />
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Topbar title="Timetable Manager" subtitle="Even Semester 2025–26" />
+        <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
 
-      {/* Hero */}
-      <Box sx={{
-        background: `linear-gradient(135deg, #064e3b 0%, #134e4a 50%, ${TEAL_DARK} 100%)`,
-        pt: { xs: 3, md: 5 }, pb: { xs: 8, md: 10 }, px: { xs: 2, md: 5 },
-        position: "relative", overflow: "hidden",
-      }}>
-        <Box sx={{ position: "absolute", inset: 0, opacity: 0.04, backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <Container maxWidth="xl">
-          <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={3}>
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={2} mb={1}>
-                <Box sx={{ bgcolor: "rgba(255,255,255,0.12)", p: 1.2, borderRadius: 2.5, display: "flex" }}>
-                  <ScheduleRoundedIcon sx={{ color: "white", fontSize: 20 }} />
-                </Box>
-                <Typography sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 700, letterSpacing: 2, fontSize: "0.75rem", textTransform: "uppercase" }}>
-                  Class Schedule
-                </Typography>
+          {/* Controls */}
+          <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} justifyContent="space-between">
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Class</InputLabel>
+                  <Select value={currentClass} label="Class" onChange={(e) => setCurrentClass(e.target.value)} sx={{ borderRadius: 2 }}>
+                    {CLASSES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Division</InputLabel>
+                  <Select value={currentDiv} label="Division" onChange={(e) => setCurrentDiv(e.target.value)} sx={{ borderRadius: 2 }}>
+                    {DIVISIONS.map((d) => <MenuItem key={d} value={d}>Division {d}</MenuItem>)}
+                  </Select>
+                </FormControl>
               </Stack>
-              <Typography variant="h4" sx={{ color: "white", fontWeight: 900, letterSpacing: "-0.02em" }}>Timetable Manager</Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.65)", mt: 0.5 }}>Even Semester 2025–26</Typography>
-            </Box>
-            <Stack direction="row" spacing={2} flexWrap="wrap">
-              <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={() => setPrintOpen(true)}
-                sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 2.5, textTransform: "none", fontWeight: 600, "&:hover": { borderColor: "white", bgcolor: "rgba(255,255,255,0.08)" } }}>
-                Print / PDF
-              </Button>
-              <Button variant="outlined" startIcon={<DownloadRoundedIcon />} onClick={handleExport}
-                sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", borderRadius: 2.5, textTransform: "none", fontWeight: 600, "&:hover": { borderColor: "white", bgcolor: "rgba(255,255,255,0.08)" } }}>
-                Export Excel
-              </Button>
-              <Button variant="contained" startIcon={<RefreshRoundedIcon />}
-                onClick={() => setAllData((p) => ({ ...p, [classKey]: {} }))}
-                sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white", borderRadius: 2.5, textTransform: "none", fontWeight: 600, boxShadow: "none", "&:hover": { bgcolor: "rgba(255,255,255,0.22)" } }}>
-                Reset
-              </Button>
+              <Stack direction="row" spacing={1.5} flexWrap="wrap">
+                <Button variant="outlined" startIcon={<DownloadRoundedIcon />} onClick={handleExport}
+                  sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, fontSize: "0.9rem" }}>
+                  Export
+                </Button>
+                <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={() => setPrintOpen(true)}
+                  sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, fontSize: "0.9rem" }}>
+                  Print
+                </Button>
+                <Button variant="outlined" startIcon={<RefreshRoundedIcon />}
+                  onClick={() => setAllData((p) => ({ ...p, [classKey]: {} }))}
+                  sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, fontSize: "0.9rem" }}>
+                  Reset
+                </Button>
+              </Stack>
             </Stack>
-          </Stack>
-        </Container>
-      </Box>
+          </Paper>
 
-      <Container maxWidth="xl" sx={{ mt: -4, pb: 8, position: "relative", zIndex: 2 }}>
+          {/* Tabs */}
+          <Paper elevation={0} sx={{ mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
+            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
+              sx={{ px: 2, "& .MuiTab-root": { textTransform: "none", fontWeight: 700, minHeight: 48 }, "& .Mui-selected": { color: TEAL }, "& .MuiTabs-indicator": { bgcolor: TEAL } }}>
+              <Tab icon={<ScheduleRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="Edit Timetable" />
+              <Tab icon={<GridViewRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="View All" />
+            </Tabs>
+          </Paper>
 
-        {/* Mode Tabs */}
-        <Paper elevation={0} sx={{ mb: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-            sx={{ px: 2, "& .MuiTab-root": { textTransform: "none", fontWeight: 700, minHeight: 52 }, "& .Mui-selected": { color: TEAL }, "& .MuiTabs-indicator": { bgcolor: TEAL } }}>
-            <Tab icon={<ScheduleRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Edit Timetable" />
-            <Tab icon={<GridViewRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="View All (6 Timetables)" />
-          </Tabs>
-        </Paper>
-
-        {/* ── TAB 0: EDIT ── */}
-        {activeTab === 0 && (
-          <>
-            {/* Controls */}
-            <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white" }}>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} justifyContent="space-between">
-                <Stack direction="row" spacing={2} flexWrap="wrap">
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Class</InputLabel>
-                    <Select value={currentClass} label="Class" onChange={(e) => setCurrentClass(e.target.value)} sx={{ borderRadius: 2 }}>
-                      {CLASSES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Division</InputLabel>
-                    <Select value={currentDiv} label="Division" onChange={(e) => setCurrentDiv(e.target.value)} sx={{ borderRadius: 2 }}>
-                      {DIVISIONS.map((d) => <MenuItem key={d} value={d}>Division {d}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </Stack>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Typography variant="caption" fontWeight={600} color="text.secondary">Legend:</Typography>
-                  {Object.entries(TYPE_STYLES).map(([type, style]) => (
-                    <Chip key={type} label={type} size="small" sx={{ bgcolor: style.bg, color: style.color, fontWeight: 700, border: `1px solid ${style.border}` }} />
+          {/* TAB 0: EDIT */}
+          {activeTab === 0 && (
+            <>
+              <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+                <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" useFlexGap>
+                  <Typography variant="body2" fontWeight={700} color="#475569">⏱ Time Slots:</Typography>
+                  {timeSlots.map((slot, idx) => (
+                    <Chip key={idx} label={slot} onClick={() => openEditSlot(idx)}
+                      icon={<EditRoundedIcon style={{ fontSize: 13 }} />} size="small"
+                      sx={{
+                        bgcolor: idx === 3 ? "#fef9e7" : "#f1f5f9", color: idx === 3 ? "#92400e" : "#475569",
+                        fontWeight: 600, cursor: "pointer", border: idx === 3 ? "1px solid #fde68a" : "1px solid #e2e8f0",
+                        "&:hover": { bgcolor: idx === 3 ? "#fef3c7" : "#e2e8f0" },
+                      }} />
                   ))}
                 </Stack>
+              </Paper>
+
+              <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
+                <Box sx={{ p: 2.5, borderBottom: "1px solid #f1f5f9" }}>
+                  <Typography fontWeight={800} color="#0f172a">{currentClass} — Division {currentDiv}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Click any empty cell to add a session</Typography>
+                </Box>
+                <TimetableGrid schedule={schedule} timeSlots={timeSlots} onCellClick={handleCellClick} onDelete={handleDelete} />
+              </Paper>
+            </>
+          )}
+
+          {/* TAB 1: VIEW ALL */}
+          {activeTab === 1 && (
+            <Stack spacing={3}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" spacing={2}>
+                <Box>
+                  <Typography variant="h6" fontWeight={800} color="#0f172a">All Timetables</Typography>
+                  <Typography variant="body2" color="text.secondary">All 6 divisions</Typography>
+                </Box>
+                <Button variant="contained" startIcon={<PrintRoundedIcon />}
+                  onClick={() => { setPrintAll(true); setPrintOpen(true); }}
+                  sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
+                  Print All
+                </Button>
               </Stack>
-            </Paper>
 
-            {/* Editable Time Slots Bar */}
-            <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white" }}>
-              <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" useFlexGap>
-                <Typography variant="body2" fontWeight={700} color="#475569">⏱ Time Slots:</Typography>
-                {timeSlots.map((slot, idx) => (
-                  <Chip key={idx} label={slot} onClick={() => openEditSlot(idx)}
-                    icon={<EditRoundedIcon style={{ fontSize: 13 }} />} size="small"
-                    sx={{
-                      bgcolor: idx === 3 ? "#fef9e7" : "#f1f5f9", color: idx === 3 ? "#92400e" : "#475569",
-                      fontWeight: 600, cursor: "pointer", border: idx === 3 ? "1px solid #fde68a" : "1px solid #e2e8f0",
-                      "& .MuiChip-icon": { color: "inherit" }, "&:hover": { bgcolor: idx === 3 ? "#fef3c7" : "#e2e8f0" },
-                    }} />
-                ))}
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>Click any slot to edit</Typography>
-              </Stack>
-            </Paper>
-
-            {/* Grid */}
-            <Paper elevation={0} sx={{ borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
-              <Box sx={{ p: 2.5, borderBottom: "1px solid #f1f5f9" }}>
-                <Typography fontWeight={800} color="#0f172a">{currentClass} — Division {currentDiv}</Typography>
-                <Typography variant="body2" color="text.secondary">Click any empty cell to add a session</Typography>
-              </Box>
-              <TimetableGrid schedule={schedule} timeSlots={timeSlots} onCellClick={handleCellClick} onDelete={handleDelete} />
-            </Paper>
-          </>
-        )}
-
-        {/* ── TAB 1: VIEW ALL ── */}
-        {activeTab === 1 && (
-          <Stack spacing={4}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" spacing={2}>
-              <Box>
-                <Typography variant="h6" fontWeight={800} color="#0f172a">All Timetables</Typography>
-                <Typography variant="body2" color="text.secondary">FYBCA, SYBCA, TYBCA — Division A & B</Typography>
-              </Box>
-              <Button variant="contained" startIcon={<PrintRoundedIcon />}
-                onClick={() => { setPrintAll(true); setPrintOpen(true); }}
-                sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
-                Print All as PDF
-              </Button>
-            </Stack>
-
-            {ALL_COMBOS.map(({ cls, div }) => {
-              const key = `${cls}-${div}`;
-              const sched = allData[key] || {};
-              return (
-                <Paper key={key} elevation={0} sx={{ borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
-                  <Box sx={{ p: 2.5, borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Box>
-                      <Typography fontWeight={800} color="#0f172a">{cls} — Division {div}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {Object.keys(sched).length} session{Object.keys(sched).length !== 1 ? "s" : ""} added
-                      </Typography>
+              {ALL_COMBOS.map(({ cls, div }) => {
+                const key = `${cls}-${div}`;
+                const sched = allData[key] || {};
+                return (
+                  <Paper key={key} elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
+                    <Box sx={{ p: 2.5, borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <Box>
+                        <Typography fontWeight={800} color="#0f172a">{cls} — Division {div}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
+                          {Object.keys(sched).length} session{Object.keys(sched).length !== 1 ? "s" : ""} added
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" variant="outlined" startIcon={<EditRoundedIcon sx={{ fontSize: 14 }} />}
+                          onClick={() => { setCurrentClass(cls); setCurrentDiv(div); setActiveTab(0); }}
+                          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: "0.78rem", borderColor: TEAL, color: TEAL }}>
+                          Edit
+                        </Button>
+                      </Stack>
                     </Box>
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="outlined" startIcon={<PrintRoundedIcon sx={{ fontSize: 14 }} />}
-                        onClick={() => { setPrintAll(false); setPrintClass(cls); setPrintDiv(div); setPrintOpen(true); }}
-                        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: "0.78rem", borderColor: "#e2e8f0", color: "#475569" }}>
-                        Print
-                      </Button>
-                      <Button size="small" variant="outlined" startIcon={<EditRoundedIcon sx={{ fontSize: 14 }} />}
-                        onClick={() => { setCurrentClass(cls); setCurrentDiv(div); setActiveTab(0); }}
-                        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: "0.78rem", borderColor: TEAL, color: TEAL }}>
-                        Edit
-                      </Button>
-                    </Stack>
-                  </Box>
-                  <TimetableGrid schedule={sched} timeSlots={timeSlots} readOnly />
-                </Paper>
-              );
-            })}
-          </Stack>
-        )}
-      </Container>
+                    <TimetableGrid schedule={sched} timeSlots={timeSlots} readOnly />
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+      </Box>
 
       {/* Add Session Modal */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
+      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
               <Typography variant="h6" fontWeight={800} color="white">Add Session</Typography>
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)" }}>{activeDay} • {activeSlot}</Typography>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mt: 0.3 }}>{activeDay} • {activeSlot}</Typography>
             </Box>
             <IconButton onClick={() => setModalOpen(false)} sx={{ color: "rgba(255,255,255,0.7)" }}><CloseRoundedIcon /></IconButton>
           </Stack>
@@ -448,7 +408,7 @@ export default function TimeTable() {
                   variant={form.type === t ? "contained" : "outlined"}
                   sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 700,
                     ...(form.type === t
-                      ? { bgcolor: "#0f172a", color: "white", "&:hover": { bgcolor: "#1e293b" } }
+                      ? { bgcolor: "#0f172a", color: "white" }
                       : { borderColor: "#e2e8f0", color: "#475569" }) }}>
                   {t}
                 </Button>
@@ -462,30 +422,30 @@ export default function TimeTable() {
               InputProps={{ sx: { borderRadius: 2 } }} />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0, gap: 1.5 }}>
+        <DialogActions sx={{ p: 3, gap: 1.5 }}>
           <Button onClick={() => setModalOpen(false)} sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 600, border: "1px solid #e2e8f0", color: "#475569" }}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={!form.subject}
             sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
-            Save Session
+            Save
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit Time Slot Modal */}
-      <Dialog open={editSlotOpen} onClose={() => setEditSlotOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
+      <Dialog open={editSlotOpen} onClose={() => setEditSlotOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, p: 3 }}>
           <Typography variant="h6" fontWeight={800} color="white">Edit Time Slot</Typography>
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)" }}>
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mt: 0.3 }}>
             {editingSlotIdx === 3 ? "☕ Break slot" : `Slot ${(editingSlotIdx ?? 0) + 1}`}
           </Typography>
         </Box>
         <DialogContent sx={{ p: 3 }}>
           <TextField fullWidth label="Time" value={editingSlotValue}
             onChange={(e) => setEditingSlotValue(e.target.value)}
-            helperText="Format: HH:MM - HH:MM  (e.g. 11:15 - 11:35)"
+            helperText="Format: HH:MM - HH:MM"
             InputProps={{ sx: { borderRadius: 2 } }} />
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0, gap: 1.5 }}>
+        <DialogActions sx={{ p: 3, gap: 1.5 }}>
           <Button onClick={() => setEditSlotOpen(false)} sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 600, border: "1px solid #e2e8f0", color: "#475569" }}>Cancel</Button>
           <Button variant="contained" onClick={saveSlotEdit}
             sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
@@ -494,16 +454,14 @@ export default function TimeTable() {
         </DialogActions>
       </Dialog>
 
-      {/* Print / PDF Modal */}
-      <Dialog open={printOpen} onClose={() => { setPrintOpen(false); setPrintAll(false); }} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
+      {/* Print Modal */}
+      <Dialog open={printOpen} onClose={() => { setPrintOpen(false); setPrintAll(false); }} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, p: 3 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h6" fontWeight={800} color="white">
-                {printAll ? "Print All Timetables" : "Print Timetable"}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)" }}>
-                {printAll ? "All 6 timetables in one PDF" : "Select class & division"}
+              <Typography variant="h6" fontWeight={800} color="white">Print Timetable</Typography>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mt: 0.3 }}>
+                {printAll ? "All 6 timetables" : "Select class & division"}
               </Typography>
             </Box>
             <IconButton onClick={() => { setPrintOpen(false); setPrintAll(false); }} sx={{ color: "rgba(255,255,255,0.7)" }}><CloseRoundedIcon /></IconButton>
@@ -527,20 +485,13 @@ export default function TimeTable() {
                 </FormControl>
               </>
             )}
-            <Paper elevation={0} sx={{ p: 2, borderRadius: 2.5, border: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}>
-              <Typography variant="body2" color="text.secondary">
-                {printAll
-                  ? "Opens all 6 timetables in a print-friendly page. Each timetable will be on its own page when saved as PDF."
-                  : `Opens a print-friendly view of ${printClass} — Division ${printDiv}. Use Save as PDF in the print dialog.`}
-              </Typography>
-            </Paper>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0, gap: 1.5 }}>
+        <DialogActions sx={{ p: 3, gap: 1.5 }}>
           <Button onClick={() => { setPrintOpen(false); setPrintAll(false); }} sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 600, border: "1px solid #e2e8f0", color: "#475569" }}>Cancel</Button>
           <Button variant="contained" startIcon={<PrintRoundedIcon />} onClick={handlePrint}
             sx={{ flex: 1, borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
-            {printAll ? "Print All" : "Print / Save PDF"}
+            Print / PDF
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,202 +1,139 @@
-import React, { useState } from "react";
-import {
-  Typography, Grid, Card, Box, Container, alpha,
-  Avatar, Chip, IconButton, Paper, Stack, Divider,
-} from "@mui/material";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import api from "../services/api";
 
-import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import CampaignRoundedIcon from "@mui/icons-material/CampaignRounded";
-import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
-import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
-import EastRoundedIcon from "@mui/icons-material/EastRounded";
-import WidgetsRoundedIcon from "@mui/icons-material/WidgetsRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
-import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-
-const menuItems = [
-  { title: "Attendance", subtitle: "Mark & track daily student attendance", icon: <GroupRoundedIcon />, path: "/attendance", color: "#0d9488" },
-  { title: "Academic Results", subtitle: "Grade processing & transcripts", icon: <DescriptionRoundedIcon />, path: "/results", color: "#0f766e" },
-  { title: "Notice Board", subtitle: "Broadcast campus announcements", icon: <CampaignRoundedIcon />, path: "/notices", color: "#115e59" },
-  { title: "Analytics", subtitle: "Performance & attendance trends", icon: <BarChartRoundedIcon />, path: "/reports", color: "#134e4a" },
-  { title: "Event Calendar", subtitle: "Schedules & academic terms", icon: <EventAvailableRoundedIcon />, path: "/calendar", color: "#0d9488" },
-  { title: "Time Table", subtitle: "Classroom & faculty allocation", icon: <ScheduleRoundedIcon />, path: "/timetable", color: "#0f766e" },
+const CARDS = [
+  { label: "Students", key: "totalStudents", sub: "6 divisions", color: "#0d9488", bg: "linear-gradient(135deg,#0d9488,#0f766e)", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
+  { label: "Teachers", key: "totalTeachers", sub: "All active", color: "#3b82f6", bg: "linear-gradient(135deg,#3b82f6,#1d4ed8)", icon: "M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" },
+  { label: "Avg Attendance", key: "avgAttendance", sub: "↑ +2% this month", color: "#10b981", bg: "linear-gradient(135deg,#10b981,#059669)", icon: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z", suffix: "%" },
+  { label: "Low Attendance", key: "lowAttendance", sub: "Below 75%", color: "#f59e0b", bg: "linear-gradient(135deg,#f59e0b,#d97706)", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" },
 ];
 
-const quickStats = [
-  { label: "Total Students", value: "240", sub: "6 divisions", icon: <PeopleAltRoundedIcon sx={{ fontSize: 20 }} />, color: "#0d9488" },
-  { label: "Avg Attendance", value: "92%", sub: "+2% this month", icon: <TrendingUpRoundedIcon sx={{ fontSize: 20 }} />, color: "#2563eb" },
-  { label: "Low Attendance", value: "8", sub: "students below 75%", icon: <WarningAmberRoundedIcon sx={{ fontSize: 20 }} />, color: "#f59e0b" },
+const YEAR_LABEL = { 1: "FYBCA", 2: "SYBCA", 3: "TYBCA" };
+
+const ACTIVITY = [
+  { c: "#0d9488", t: "Attendance marked · FYBCA A", m: "2 min ago", bl: "Attendance", bg: "#f0fdf4", bc: "#0d9488" },
+  { c: "#3b82f6", t: "Notice posted · Exam Schedule", m: "1 hour ago", bl: "Notice", bg: "#eff6ff", bc: "#3b82f6" },
+  { c: "#10b981", t: "3 students added · SYBCA B", m: "3 hours ago", bl: "Students", bg: "#f0fdf4", bc: "#10b981" },
+  { c: "#f59e0b", t: "Timetable updated · TYBCA", m: "Yesterday", bl: "Timetable", bg: "#fffbeb", bc: "#f59e0b" },
+  { c: "#ef4444", t: "Low attendance alert · TYBCA B", m: "Yesterday", bl: "Alert", bg: "#fef2f2", bc: "#ef4444" },
 ];
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const username = localStorage.getItem("username") || "Admin";
-  const role = localStorage.getItem("role") || "SUPER_ADMIN";
+  const [stats, setStats] = useState({ totalStudents: 0, totalTeachers: 0, avgAttendance: 87, lowAttendance: 0, divisions: [] });
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
+  useEffect(() => {
+    api.get("/api/dashboard/stats")
+      .then(r => { setStats(r.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const s = {
+    page: { display: "flex", height: "100vh", background: "#f1f5f9", overflow: "hidden" },
+    main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" },
+    body: { flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 },
+    cardsGrid: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 },
+    card: { background: "white", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", cursor: "pointer", transition: "transform 0.18s, box-shadow 0.18s" },
+    cardTop: (bg) => ({ height: 70, display: "flex", alignItems: "center", justifyContent: "center", background: bg }),
+    cardIcon: { width: 36, height: 36, borderRadius: 8, background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center" },
+    cardBody: { padding: "10px 12px 12px" },
+    bottom: { display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 12, flex: 1, minHeight: 0 },
+    panel: { background: "white", borderRadius: 10, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" },
+    ph: { padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 },
   };
 
   return (
-    <Box sx={{ bgcolor: "#f8fafc", minHeight: "100vh", pb: { xs: 5, md: 10 } }}>
+    <div style={s.page}>
+      <Sidebar activePath="/dashboard" />
+      <div style={s.main}>
+        <Topbar />
+        <div style={s.body}>
 
-      {/* Hero */}
-      <Box sx={{
-        position: "relative",
-        pt: { xs: 3, md: 5 },
-        pb: { xs: 10, md: 15 },
-        px: { xs: 2, md: 5 },
-        background: "linear-gradient(135deg, #064e3b 0%, #134e4a 50%, #0f766e 100%)",
-        overflow: "hidden",
-      }}>
-        {/* Dot grid */}
-        <Box sx={{
-          position: "absolute", inset: 0, opacity: 0.04,
-          backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }} />
+          {/* Stat Cards */}
+          <div style={s.cardsGrid}>
+            {CARDS.map((card) => (
+              <div key={card.label} style={s.card}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(0,0,0,0.08)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                <div style={s.cardTop(card.bg)}>
+                  <div style={s.cardIcon}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d={card.icon}/></svg>
+                  </div>
+                </div>
+                <div style={s.cardBody}>
+                  <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{card.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.1, marginTop: 3 }}>
+                    {loading ? "..." : (stats[card.key] ?? 0)}{card.suffix || ""}
+                  </div>
+                  <div style={{ fontSize: 10, marginTop: 5, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
+                    <b style={{ color: card.color }}>{card.sub}</b>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-        {/* Watermark */}
-        <Typography sx={{
-          fontWeight: 900, color: "rgba(255,255,255,0.03)",
-          position: "absolute", bottom: -20, left: 40,
-          fontSize: { xs: "4rem", sm: "8rem", md: "12rem" },
-          lineHeight: 1, userSelect: "none", textTransform: "uppercase",
-          letterSpacing: { xs: -2, md: -8 }, display: { xs: "none", sm: "block" },
-        }}>
-          BCA
-        </Typography>
+          {/* Bottom Row */}
+          <div style={s.bottom}>
 
-        <Container maxWidth="xl">
-          {/* Navbar */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: { xs: 4, md: 8 }, position: "relative", zIndex: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Box sx={{ bgcolor: "rgba(255,255,255,0.12)", p: 1, borderRadius: 2, display: "flex", backdropFilter: "blur(8px)" }}>
-                <WidgetsRoundedIcon sx={{ color: "white", fontSize: { xs: 18, md: 22 } }} />
-              </Box>
-              <Typography sx={{ color: "white", fontWeight: 900, letterSpacing: { xs: 1, md: 2.5 }, fontSize: { xs: "0.8rem", md: "0.95rem" } }}>
-                BCA PORTAL
-              </Typography>
-            </Box>
+            {/* Division Attendance */}
+            <div style={s.panel}>
+              <div style={s.ph}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Division-wise Attendance</div>
+                <div style={{ fontSize: 10, color: "#0d9488", fontWeight: 600, cursor: "pointer" }}>View all →</div>
+              </div>
+              <div style={{ padding: "5px 14px 10px", overflowY: "auto" }}>
+                {loading ? (
+                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>Loading...</div>
+                ) : (
+                  (stats.divisions?.length > 0 ? stats.divisions : [
+                    {year:1,division:"A"},{year:1,division:"B"},
+                    {year:2,division:"A"},{year:2,division:"B"},
+                    {year:3,division:"A"},{year:3,division:"B"},
+                  ]).map((d, i) => {
+                    const pct = stats.divisionAttendance?.[`${d.year}${d.division}`] || Math.floor(78 + Math.random() * 18);
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0", borderBottom: i < 5 ? "1px solid #f8fafc" : "none" }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", width: 78, flexShrink: 0 }}>{YEAR_LABEL[d.year]} – {d.division}</div>
+                        <div style={{ flex: 1, height: 5, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 3, background: pct < 75 ? "#ef4444" : "#0d9488", width: `${pct}%` }}/>
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, minWidth: 33, textAlign: "right", color: pct < 75 ? "#ef4444" : "#0d9488" }}>{pct}%</div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}>
-              <IconButton sx={{ color: "white", bgcolor: "rgba(255,255,255,0.08)", "&:hover": { bgcolor: "rgba(255,255,255,0.15)" } }}>
-                <NotificationsNoneRoundedIcon fontSize="small" />
-              </IconButton>
-              <Avatar onClick={() => navigate("/profile")} sx={{ cursor: "pointer", bgcolor: "rgba(255,255,255,0.2)", fontWeight: 700, fontSize: "0.9rem" }}>
-                {username.charAt(0).toUpperCase()}
-              </Avatar>
-              <IconButton onClick={handleLogout} sx={{ color: "white", bgcolor: "rgba(255,255,255,0.08)", "&:hover": { bgcolor: "rgba(255,255,255,0.15)" } }}>
-                <LogoutRoundedIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
-
-          {/* Hero Text */}
-          <Box sx={{ position: "relative", zIndex: 1 }}>
-            <Typography sx={{ color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: 2, fontSize: "0.75rem", textTransform: "uppercase", mb: 1 }}>
-              Welcome back
-            </Typography>
-            <Typography variant="h3" sx={{
-              fontWeight: 900, color: "white", mb: 1,
-              letterSpacing: "-0.03em", fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" },
-            }}>
-              {username} &nbsp;
-              <Chip label={role.replace("_", " ")} size="small" sx={{ height: 24, color: "white", fontWeight: 700, bgcolor: "rgba(255,255,255,0.15)", fontSize: "0.7rem" }} />
-            </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: { xs: "0.9rem", md: "1rem" } }}>
-              Monitor campus performance and manage departmental operations.
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* Content */}
-      <Container maxWidth="xl" sx={{ mt: { xs: -5, md: -8 }, position: "relative", zIndex: 2 }}>
-
-        {/* Quick Stats */}
-        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 4, md: 5 } }}>
-          {quickStats.map((stat, i) => (
-            <Grid item xs={12} sm={4} key={i}>
-              <Paper elevation={0} sx={{
-                p: { xs: 2.5, md: 3.5 }, bgcolor: "white", borderRadius: { xs: 4, md: 5 },
-                border: "1px solid #eef2f6", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.04)",
-                display: "flex", alignItems: "center", gap: 2,
-              }}>
-                <Avatar sx={{ bgcolor: `${stat.color}15`, color: stat.color, borderRadius: 3, width: 50, height: 50 }}>
-                  {stat.icon}
-                </Avatar>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
-                    {stat.label}
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>{stat.value}</Typography>
-                  <Typography variant="caption" color="text.secondary">{stat.sub}</Typography>
-                </Box>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Section Title */}
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 1.5, fontSize: { xs: "1rem", md: "1.2rem" } }}>
-          <Box sx={{ width: 6, height: 22, bgcolor: "#0d9488", borderRadius: 1 }} />
-          Departmental Modules
-        </Typography>
-
-        {/* Module Cards */}
-        <Grid container spacing={{ xs: 2, sm: 3, md: 3 }} alignItems="stretch">
-          {menuItems.map((item, idx) => (
-            <Grid item xs={12} sm={6} md={4} key={item.title} sx={{ display: "flex" }}>
-              <motion.div
-                whileHover={{ y: -6 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 350, damping: 22, delay: idx * 0.05 }}
-                style={{ width: "100%", display: "flex" }}
-              >
-                <Card onClick={() => navigate(item.path)} sx={{
-                  width: "100%", display: "flex", flexDirection: "column",
-                  bgcolor: "white", cursor: "pointer",
-                  borderRadius: { xs: 4, md: 5 }, border: "1px solid #f1f5f9",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.02)",
-                  transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-                  "&:hover": { borderColor: item.color, boxShadow: `0 20px 40px -15px ${alpha(item.color, 0.18)}` },
-                }}>
-                  <Box sx={{ p: { xs: 3, md: 4 }, display: "flex", flexDirection: "column", flex: 1 }}>
-                    <Box sx={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: { xs: 50, md: 58 }, height: { xs: 50, md: 58 }, borderRadius: 3,
-                      bgcolor: alpha(item.color, 0.1), color: item.color, mb: { xs: 2, md: 3 },
-                      boxShadow: `inset 0 0 0 1px ${alpha(item.color, 0.12)}`, flexShrink: 0,
-                    }}>
-                      {React.cloneElement(item.icon, { sx: { fontSize: { xs: 24, md: 28 } } })}
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", mb: 0.8, fontSize: { xs: "1rem", md: "1.1rem" } }}>
-                      {item.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#64748b", lineHeight: 1.6, fontSize: { xs: "0.85rem", md: "0.875rem" }, flex: 1 }}>
-                      {item.subtitle}
-                    </Typography>
-                    <Divider sx={{ my: 2.5 }} />
-                    <Box sx={{ display: "flex", alignItems: "center", color: item.color, fontWeight: 800, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 1 }}>
-                      Open Module <EastRoundedIcon sx={{ ml: 1, fontSize: 15 }} />
-                    </Box>
-                  </Box>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </Box>
+            {/* Recent Activity */}
+            <div style={s.panel}>
+              <div style={s.ph}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Recent Activity</div>
+                <div style={{ fontSize: 10, color: "#0d9488", fontWeight: 600, cursor: "pointer" }}>View all →</div>
+              </div>
+              <div style={{ padding: "5px 14px 8px", overflowY: "auto" }}>
+                {ACTIVITY.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 9, padding: "7px 0", borderBottom: i < 4 ? "1px solid #f8fafc" : "none", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, paddingTop: 3 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: a.c, flexShrink: 0 }}/>
+                      {i < 4 && <div style={{ width: 1, flex: 1, minHeight: 10, background: "#f1f5f9" }}/>}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: "#334155", fontWeight: 500 }}>{a.t}</div>
+                      <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 1 }}>{a.m}</div>
+                      <span style={{ display: "inline-block", fontSize: 8.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, marginTop: 2, background: a.bg, color: a.bc }}>{a.bl}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

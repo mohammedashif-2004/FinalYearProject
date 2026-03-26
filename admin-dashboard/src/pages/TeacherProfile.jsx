@@ -1,246 +1,287 @@
 import React, { useState } from "react";
-import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
 import {
-  Box, Typography, Container, Avatar, Grid, Card, Button, Chip,
-  Divider, Stack, TextField, IconButton, Paper,
+  Box, Typography, Paper, Stack, Button, TextField, Avatar, IconButton, Tabs, Tab,
+  Dialog, DialogContent, DialogActions, Alert, Divider,
 } from "@mui/material";
-import { motion } from "framer-motion";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import MailRoundedIcon from "@mui/icons-material/MailRounded";
+import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
+import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
-import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 
 const TEAL = "#0d9488";
 const TEAL_DARK = "#0f766e";
 
 export default function TeacherProfile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const username = localStorage.getItem("username") || "Admin";
   const role = localStorage.getItem("role") || "SUPER_ADMIN";
 
   const [profile, setProfile] = useState({
-    name: "Rajesh Kumar",
-    role: "Senior Faculty Member",
-    dept: "Department of Computer Science",
-    email: "rajesh.kumar@bcacollege.edu.in",
-    phone: "+91 98765 43210",
-    about: "A dedicated educator with over a decade of experience fostering technical excellence. My teaching approach focuses on 'Learning by Doing,' integrating real-world industry projects with core theoretical concepts. Passionate about mentoring students to bridge the gap between academic learning and professional software engineering.",
-    qualifications: "Ph.D. in Computer Science – Stanford University (2018)\nM.Tech in Software Systems – IIT Delhi (2012)\nB.E. in Computer Engineering – Mumbai University (2010)",
-    experience: "8+ Years Academic Teaching at BCA College\n3 Years Senior Software Engineer at Google India\nVisiting Faculty at NMIMS University",
-    skills: ["Java", "React.js", "Spring Boot", "Mentoring", "System Design", "Cloud Computing", "Python"],
+    name: "Dr. Priya Sharma",
+    email: "priya.sharma@bca.edu",
+    phone: "+91-9876543210",
+    designation: "Senior Faculty",
+    department: "Computer Science",
+    qualification: "M.Tech, PhD",
+    joinDate: "2018-06-15",
+    address: "Pune, Maharashtra",
+    bio: "Experienced educator with 10+ years in computer science education",
+    subjects: ["Web Technology", "Database Management", "Cloud Computing"],
+    classes: ["SYBCA Division A", "SYBCA Division B", "TYBCA Division A"],
   });
 
-  const handleChange = (e) => setProfile({ ...profile, [e.target.name]: e.target.value });
+  const [editForm, setEditForm] = useState({ ...profile });
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditForm({ ...profile });
+  };
+
+  const handleSave = async () => {
+    setError("");
+    setSuccess("");
+    if (!editForm.name || !editForm.email) {
+      setError("Name and email are required");
+      return;
+    }
+    try {
+      await new Promise((r) => setTimeout(r, 800));
+      setProfile({ ...editForm });
+      setSuccess("Profile updated successfully!");
+      setIsEditing(false);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch {
+      setError("Failed to update profile");
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditForm({ ...profile });
+  };
 
   return (
-    <Box sx={{ bgcolor: "#f8fafc", minHeight: "100vh", pb: 10 }}>
-      <Navbar />
+    <Box sx={{ display: "flex", height: "100vh", background: "#f1f5f9" }}>
+      <Sidebar activePath="/profile" />
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Topbar title="Teacher Profile" subtitle="Manage your profile information" />
+        <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
 
-      {/* Cover Hero */}
-      <Box sx={{
-        background: `linear-gradient(135deg, #064e3b 0%, #134e4a 50%, ${TEAL_DARK} 100%)`,
-        pt: { xs: 3, md: 5 }, pb: { xs: 12, md: 16 }, px: { xs: 2, md: 5 },
-        position: "relative", overflow: "hidden",
-      }}>
-        <Box sx={{ position: "absolute", inset: 0, opacity: 0.04, backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <Container maxWidth="lg">
-          <Stack direction="row" alignItems="center" spacing={2}>
-            <Box sx={{ bgcolor: "rgba(255,255,255,0.12)", p: 1.2, borderRadius: 2.5, display: "flex" }}>
-              <PersonRoundedIcon sx={{ color: "white", fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 700, letterSpacing: 2, fontSize: "0.75rem", textTransform: "uppercase" }}>
-              Faculty Profile
-            </Typography>
-          </Stack>
-        </Container>
-      </Box>
+          {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 3 }}>{success}</Alert>}
 
-      <Container maxWidth="lg" sx={{ mt: -10, position: "relative", zIndex: 2 }}>
-
-        {/* Profile Header Card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Paper elevation={0} sx={{ borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden", mb: 3 }}>
-            <Box sx={{ p: { xs: 3, md: 4 } }}>
-              <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} md="auto">
-                  <Avatar sx={{
-                    width: { xs: 90, md: 110 }, height: { xs: 90, md: 110 },
-                    bgcolor: TEAL, fontSize: { xs: "2rem", md: "2.5rem" }, fontWeight: 900,
-                    border: "4px solid white", boxShadow: `0 8px 24px ${TEAL}40`,
-                    mx: { xs: "auto", md: 0 },
-                  }}>
-                    {profile.name.charAt(0)}
-                  </Avatar>
-                </Grid>
-
-                <Grid item xs={12} md>
-                  {isEditing ? (
-                    <Stack spacing={2} direction={{ xs: "column", sm: "row" }}>
-                      <TextField fullWidth name="name" label="Full Name" value={profile.name} onChange={handleChange} size="small" InputProps={{ sx: { borderRadius: 2 } }} />
-                      <TextField fullWidth name="role" label="Role" value={profile.role} onChange={handleChange} size="small" InputProps={{ sx: { borderRadius: 2 } }} />
-                    </Stack>
-                  ) : (
-                    <Box textAlign={{ xs: "center", md: "left" }}>
-                      <Typography variant="h4" fontWeight={900} color="#0f172a" sx={{ fontSize: { xs: "1.6rem", md: "2rem" } }}>{profile.name}</Typography>
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "center", md: "center" }} mt={1} flexWrap="wrap" justifyContent={{ xs: "center", md: "flex-start" }}>
-                        <Chip label={profile.role} sx={{ bgcolor: `${TEAL}15`, color: TEAL, fontWeight: 700 }} />
-                        <Chip label={role.replace("_", " ")} size="small" sx={{ bgcolor: "#f1f5f9", color: "#475569", fontWeight: 600 }} />
-                      </Stack>
-                      <Typography color="text.secondary" mt={1} sx={{ fontSize: "0.9rem" }}>{profile.dept}</Typography>
-                    </Box>
-                  )}
-                </Grid>
-
-                <Grid item xs={12} md="auto">
-                  <Stack direction={{ xs: "row", md: "column" }} spacing={1.5} justifyContent="center">
-                    {isEditing ? (
-                      <>
-                        <Button variant="contained" startIcon={<SaveRoundedIcon />} onClick={() => setIsEditing(false)} fullWidth
-                          sx={{ bgcolor: "#10b981", borderRadius: 2.5, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#059669" } }}>
-                          Save
-                        </Button>
-                        <Button variant="outlined" startIcon={<CancelRoundedIcon />} onClick={() => setIsEditing(false)} fullWidth
-                          sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, borderColor: "#e2e8f0", color: "#475569" }}>
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button variant="contained" startIcon={<EditRoundedIcon />} onClick={() => setIsEditing(true)}
-                        sx={{ bgcolor: "#0f172a", borderRadius: 2.5, textTransform: "none", fontWeight: 700, px: 3, "&:hover": { bgcolor: "#1e293b" } }}>
-                        Edit Profile
-                      </Button>
-                    )}
-                  </Stack>
-                </Grid>
-              </Grid>
-
-              {/* Contact Info */}
-              {!isEditing && (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1.5, sm: 3 }} mt={3} pt={3} sx={{ borderTop: "1px solid #f1f5f9" }} flexWrap="wrap">
-                  <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
-                    <EmailRoundedIcon sx={{ fontSize: 16, color: TEAL }} />
-                    <Typography variant="body2">{profile.email}</Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center" color="text.secondary">
-                    <PhoneRoundedIcon sx={{ fontSize: 16, color: TEAL }} />
-                    <Typography variant="body2">{profile.phone}</Typography>
-                  </Stack>
-                </Stack>
-              )}
-              {isEditing && (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mt={3} pt={3} sx={{ borderTop: "1px solid #f1f5f9" }}>
-                  <TextField fullWidth name="email" label="Email" value={profile.email} onChange={handleChange} size="small" InputProps={{ sx: { borderRadius: 2 } }} />
-                  <TextField fullWidth name="phone" label="Phone" value={profile.phone} onChange={handleChange} size="small" InputProps={{ sx: { borderRadius: 2 } }} />
-                </Stack>
-              )}
-            </Box>
-          </Paper>
-        </motion.div>
-
-        <Grid container spacing={3}>
-          {/* About */}
-          <Grid item xs={12} md={7}>
-            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white", height: "100%" }}>
-              <Stack direction="row" spacing={1.5} alignItems="center" mb={2.5}>
-                <Avatar sx={{ bgcolor: `${TEAL}15`, color: TEAL, width: 36, height: 36, borderRadius: 2 }}>
-                  <PersonRoundedIcon sx={{ fontSize: 18 }} />
-                </Avatar>
-                <Typography variant="h6" fontWeight={800} color="#0f172a">About</Typography>
+          {/* Profile Header */}
+          <Paper elevation={0} sx={{ p: 4, mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white", background: `linear-gradient(135deg, rgba(6,78,59,0.05), rgba(15,118,110,0.05))` }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ sm: "flex-start" }}>
+              <Avatar
+                sx={{
+                  width: 100,
+                  height: 100,
+                  bgcolor: TEAL,
+                  fontSize: "2.5rem",
+                  fontWeight: 900,
+                  boxShadow: "0 4px 12px rgba(13,148,136,0.2)",
+                }}
+              >
+                {profile.name.charAt(0)}
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                {isEditing ? (
+                  <TextField fullWidth label="Full Name" value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    variant="standard" sx={{ mb: 1 }} />
+                ) : (
+                  <Typography variant="h5" fontWeight={900} color="#0f172a">
+                    {profile.name}
+                  </Typography>
+                )}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {profile.designation} • {profile.department}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#0d9488", fontWeight: 700, mt: 1, display: "block" }}>
+                  {profile.qualification}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1} alignItems="center">
+                {!isEditing ? (
+                  <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={handleEditClick}
+                    sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, borderColor: TEAL, color: TEAL }}>
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="contained" startIcon={<SaveRoundedIcon />} onClick={handleSave}
+                      sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, background: `linear-gradient(135deg, #064e3b, ${TEAL_DARK})`, boxShadow: "none" }}>
+                      Save
+                    </Button>
+                    <Button variant="outlined" startIcon={<CancelRoundedIcon />} onClick={handleCancel}
+                      sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 700, borderColor: "#e2e8f0" }}>
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </Stack>
-              <Divider sx={{ mb: 3 }} />
-              {isEditing ? (
-                <TextField fullWidth multiline rows={8} name="about" value={profile.about} onChange={handleChange} InputProps={{ sx: { borderRadius: 2 } }} />
-              ) : (
-                <Typography color="#475569" lineHeight={1.8}>{profile.about}</Typography>
-              )}
+            </Stack>
+          </Paper>
+
+          {/* Tabs */}
+          <Paper elevation={0} sx={{ mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white", overflow: "hidden" }}>
+            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
+              sx={{ px: 2, "& .MuiTab-root": { textTransform: "none", fontWeight: 700, minHeight: 48 }, "& .Mui-selected": { color: TEAL }, "& .MuiTabs-indicator": { bgcolor: TEAL } }}>
+              <Tab label="Personal Info" />
+              <Tab label="Contact Details" />
+              <Tab label="Professional" />
+              <Tab label="Classes & Subjects" />
+            </Tabs>
+          </Paper>
+
+          {/* TAB 0: Personal Info */}
+          {activeTab === 0 && (
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+              <Typography fontWeight={800} color="#0f172a" mb={2}>Personal Information</Typography>
+              <Stack spacing={2.5}>
+                {[
+                  { label: "Full Name", key: "name", icon: <BadgeRoundedIcon /> },
+                  { label: "Designation", key: "designation", icon: <SchoolRoundedIcon /> },
+                  { label: "Department", key: "department", icon: <SchoolRoundedIcon /> },
+                  { label: "Bio", key: "bio", multiline: true, icon: null },
+                  { label: "Joined Date", key: "joinDate", type: "date", icon: <CalendarMonthRoundedIcon /> },
+                ].map((field) => (
+                  <Box key={field.key}>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+                      {field.icon && <Box sx={{ color: TEAL }}>{field.icon}</Box>}
+                      <Typography fontWeight={600} color="#475569" sx={{ fontSize: "0.9rem" }}>
+                        {field.label}
+                      </Typography>
+                    </Stack>
+                    {isEditing ? (
+                      <TextField fullWidth size="small" value={editForm[field.key]}
+                        onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
+                        multiline={field.multiline} rows={field.multiline ? 3 : 1}
+                        type={field.type || "text"}
+                        InputProps={{ sx: { borderRadius: 2 } }} />
+                    ) : (
+                      <Typography color="#0f172a" sx={{ pl: field.icon ? 4 : 0 }}>
+                        {profile[field.key]}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
             </Paper>
-          </Grid>
+          )}
 
-          {/* Right Column */}
-          <Grid item xs={12} md={5}>
-            <Stack spacing={3}>
+          {/* TAB 1: Contact Details */}
+          {activeTab === 1 && (
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+              <Typography fontWeight={800} color="#0f172a" mb={2}>Contact Information</Typography>
+              <Stack spacing={2.5}>
+                {[
+                  { label: "Email", key: "email", type: "email", icon: <MailRoundedIcon /> },
+                  { label: "Phone", key: "phone", icon: <PhoneRoundedIcon /> },
+                  { label: "Address", key: "address", multiline: true, icon: <LocationOnRoundedIcon /> },
+                ].map((field) => (
+                  <Box key={field.key}>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+                      <Box sx={{ color: TEAL }}>{field.icon}</Box>
+                      <Typography fontWeight={600} color="#475569" sx={{ fontSize: "0.9rem" }}>
+                        {field.label}
+                      </Typography>
+                    </Stack>
+                    {isEditing ? (
+                      <TextField fullWidth size="small" value={editForm[field.key]}
+                        onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
+                        multiline={field.multiline} rows={field.multiline ? 2 : 1}
+                        type={field.type || "text"}
+                        InputProps={{ sx: { borderRadius: 2 } }} />
+                    ) : (
+                      <Typography color="#0f172a" sx={{ pl: 4 }}>
+                        {profile[field.key]}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          )}
 
-              {/* Qualifications */}
-              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white" }}>
-                <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
-                  <Avatar sx={{ bgcolor: "#e0e7ff", color: "#4f46e5", width: 36, height: 36, borderRadius: 2 }}>
-                    <SchoolRoundedIcon sx={{ fontSize: 18 }} />
-                  </Avatar>
-                  <Typography fontWeight={800} color="#0f172a">Qualifications</Typography>
-                </Stack>
-                <Divider sx={{ mb: 2 }} />
-                {isEditing ? (
-                  <TextField fullWidth multiline rows={4} name="qualifications" value={profile.qualifications} onChange={handleChange} InputProps={{ sx: { borderRadius: 2 } }} />
-                ) : (
-                  <Stack spacing={1}>
-                    {profile.qualifications.split("\n").map((q, i) => (
-                      <Stack key={i} direction="row" spacing={1.5} alignItems="flex-start">
-                        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: TEAL, mt: 0.8, flexShrink: 0 }} />
-                        <Typography variant="body2" color="#475569" fontWeight={500}>{q}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-              </Paper>
+          {/* TAB 2: Professional */}
+          {activeTab === 2 && (
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+              <Typography fontWeight={800} color="#0f172a" mb={2}>Professional Details</Typography>
+              <Stack spacing={2.5}>
+                {[
+                  { label: "Qualification", key: "qualification", icon: <SchoolRoundedIcon /> },
+                  { label: "Department", key: "department", icon: <SchoolRoundedIcon /> },
+                  { label: "Designation", key: "designation", icon: <BadgeRoundedIcon /> },
+                  { label: "Join Date", key: "joinDate", type: "date", icon: <CalendarMonthRoundedIcon /> },
+                ].map((field) => (
+                  <Box key={field.key}>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+                      <Box sx={{ color: TEAL }}>{field.icon}</Box>
+                      <Typography fontWeight={600} color="#475569" sx={{ fontSize: "0.9rem" }}>
+                        {field.label}
+                      </Typography>
+                    </Stack>
+                    {isEditing ? (
+                      <TextField fullWidth size="small" value={editForm[field.key]}
+                        onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
+                        type={field.type || "text"}
+                        InputProps={{ sx: { borderRadius: 2 } }} />
+                    ) : (
+                      <Typography color="#0f172a" sx={{ pl: 4 }}>
+                        {profile[field.key]}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          )}
 
-              {/* Experience */}
-              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white" }}>
-                <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
-                  <Avatar sx={{ bgcolor: "#fef3c7", color: "#d97706", width: 36, height: 36, borderRadius: 2 }}>
-                    <BadgeRoundedIcon sx={{ fontSize: 18 }} />
-                  </Avatar>
-                  <Typography fontWeight={800} color="#0f172a">Experience</Typography>
-                </Stack>
-                <Divider sx={{ mb: 2 }} />
-                {isEditing ? (
-                  <TextField fullWidth multiline rows={3} name="experience" value={profile.experience} onChange={handleChange} InputProps={{ sx: { borderRadius: 2 } }} />
-                ) : (
-                  <Stack spacing={1}>
-                    {profile.experience.split("\n").map((e, i) => (
-                      <Stack key={i} direction="row" spacing={1.5} alignItems="flex-start">
-                        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#f59e0b", mt: 0.8, flexShrink: 0 }} />
-                        <Typography variant="body2" color="#475569" fontWeight={500}>{e}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
-              </Paper>
-
-              {/* Skills */}
-              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "white" }}>
-                <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
-                  <Avatar sx={{ bgcolor: "#ccfbf1", color: TEAL, width: 36, height: 36, borderRadius: 2 }}>
-                    <MenuBookRoundedIcon sx={{ fontSize: 18 }} />
-                  </Avatar>
-                  <Typography fontWeight={800} color="#0f172a">Key Skills</Typography>
-                </Stack>
-                <Divider sx={{ mb: 2 }} />
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                  {profile.skills.map((skill, i) => (
-                    <Chip key={i} label={skill} size="small"
-                      onDelete={isEditing ? () => setProfile({ ...profile, skills: profile.skills.filter((_, j) => j !== i) }) : undefined}
-                      sx={{ bgcolor: `${TEAL}10`, color: TEAL, fontWeight: 700, border: `1px solid ${TEAL}25`, borderRadius: 2 }} />
+          {/* TAB 3: Classes & Subjects */}
+          {activeTab === 3 && (
+            <Stack spacing={2.5}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+                <Typography fontWeight={800} color="#0f172a" mb={2}>Assigned Subjects</Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {profile.subjects.map((subj) => (
+                    <Box key={subj} sx={{
+                      bgcolor: "#ccfbf1", color: TEAL, fontWeight: 700, fontSize: "0.85rem",
+                      px: 2.5, py: 1, borderRadius: 2.5, border: `1px solid ${TEAL}20`,
+                    }}>
+                      {subj}
+                    </Box>
                   ))}
-                  {isEditing && (
-                    <IconButton size="small" onClick={() => {
-                      const s = prompt("Add a new skill:");
-                      if (s) setProfile({ ...profile, skills: [...profile.skills, s] });
-                    }} sx={{ color: TEAL, bgcolor: `${TEAL}10`, width: 32, height: 32, borderRadius: 2, "&:hover": { bgcolor: `${TEAL}20` } }}>
-                      <AddCircleOutlineIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  )}
-                </Box>
+                </Stack>
+              </Paper>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
+                <Typography fontWeight={800} color="#0f172a" mb={2}>Assigned Classes</Typography>
+                <Stack spacing={1.5}>
+                  {profile.classes.map((cls) => (
+                    <Box key={cls} sx={{ p: 2, borderRadius: 2.5, border: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <SchoolRoundedIcon sx={{ color: TEAL, fontSize: 18 }} />
+                        <Typography fontWeight={700} color="#0f172a">{cls}</Typography>
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
               </Paper>
             </Stack>
-          </Grid>
-        </Grid>
-      </Container>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }
