@@ -7,8 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -23,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -38,7 +41,7 @@ public class SecurityConfig {
             return new org.springframework.security.core.userdetails.User(
                     user.getUsername(),
                     user.getPassword(),
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                    List.of(new SimpleGrantedAuthority(user.getRole().name()))
             );
         };
     }
@@ -47,7 +50,7 @@ public class SecurityConfig {
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService());
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder()); // Uses the bean defined below
         return provider;
     }
 
@@ -56,19 +59,26 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    // This is the missing part that caused your crash!
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(Customizer.withDefaults()) 
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
-                .requestMatchers("/api/teacher/**").hasAnyRole("SUPER_ADMIN", "CLASS_TEACHER", "SUBJECT_TEACHER")
-                .requestMatchers("/api/student/**").hasAnyRole("SUPER_ADMIN", "STUDENT")
+                .requestMatchers("/api/dashboard/**").authenticated()
+                .requestMatchers("/api/admin/**").hasAnyAuthority("SUPER_ADMIN")
+                .requestMatchers("/api/teacher/**").hasAnyAuthority("SUPER_ADMIN", "CLASS_TEACHER", "SUBJECT_TEACHER")
+                .requestMatchers("/api/student/**").hasAnyAuthority("SUPER_ADMIN", "STUDENT")
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -88,10 +98,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
-    }
-
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 }

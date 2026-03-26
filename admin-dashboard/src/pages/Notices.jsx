@@ -1,10 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import { createNotice, getAllNotices, deleteNotice } from "../services/api";
 import {
   Box, Typography, Paper, Stack, Button, TextField, Select, MenuItem,
   FormControl, InputLabel, Dialog, DialogContent, DialogActions, IconButton,
-  Table, TableBody, TableCell, TableHead, TableRow, Chip, Alert, CircularProgress,
+  Chip, Alert, CircularProgress,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -30,22 +31,36 @@ export default function Notices() {
   const [message, setMessage] = useState("");
   const [noticeType, setNoticeType] = useState("General");
   const [selectedFile, setSelectedFile] = useState(null);
+  
   const [isPublishing, setIsPublishing] = useState(false);
-  const [notices, setNotices] = useState([
-    { id: 1, title: "Exam Schedule Released", type: "Exam", message: "Mid-semester exams scheduled for next month", date: "2026-03-20", file: null },
-    { id: 2, title: "Holi Holiday Notice", type: "Holiday", message: "College will remain closed on Holi", date: "2026-03-18", file: null },
-    { id: 3, title: "Urgent: Fee Submission", type: "Urgent", message: "Submit semester fees by 31st March", date: "2026-03-15", file: null },
-  ]);
+  const [notices, setNotices] = useState([]); // Initialized as empty array for database records
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [editingId, setEditingId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Fetch real notices on load
+  useEffect(() => {
+    fetchNotices();
+  }, []);
+
+  const fetchNotices = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllNotices();
+      setNotices(response.data);
+    } catch (err) {
+      console.error("Failed to fetch notices", err);
+      setError("Failed to load notices from the database.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredNotices = notices.filter((n) =>
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.message.toLowerCase().includes(searchQuery.toLowerCase())
+    n.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    n.message?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleFileSelect = (e) => {
@@ -65,47 +80,43 @@ export default function Notices() {
     setIsPublishing(true);
     setError("");
     setSuccess("");
+    
     try {
-      const newNotice = {
-        id: editingId || Date.now(),
-        title,
-        type: noticeType,
-        message,
-        date: new Date().toISOString().split("T")[0],
-        file: selectedFile?.name || null,
-      };
-      if (editingId) {
-        setNotices((prev) => prev.map((n) => (n.id === editingId ? newNotice : n)));
-      } else {
-        setNotices((prev) => [newNotice, ...prev]);
-      }
-      setSuccess(editingId ? "Notice updated successfully!" : "Notice published successfully!");
+      // Send data to Spring Boot
+      await createNotice({ 
+        title, 
+        message, 
+        type: noticeType 
+      });
+      
+      setSuccess("Notice published to the database successfully!");
       setTitle("");
       setMessage("");
       setNoticeType("General");
       setSelectedFile(null);
-      setEditingId(null);
       setModalOpen(false);
-    } catch {
-      setError("Failed to publish notice");
+      
+      // Refresh the list from the database
+      fetchNotices();
+    } catch (err) {
+      console.error("Publish error:", err);
+      setError("Failed to publish notice to the database.");
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Delete this notice?")) {
-      setNotices((prev) => prev.filter((n) => n.id !== id));
-      setSuccess("Notice deleted");
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this notice?")) {
+      try {
+        await deleteNotice(id);
+        setSuccess("Notice deleted successfully");
+        fetchNotices(); // Refresh the list
+      } catch (err) {
+        console.error("Delete error:", err);
+        setError("Failed to delete the notice.");
+      }
     }
-  };
-
-  const handleEdit = (notice) => {
-    setTitle(notice.title);
-    setMessage(notice.message);
-    setNoticeType(notice.type);
-    setEditingId(notice.id);
-    setModalOpen(true);
   };
 
   const handleNewNotice = () => {
@@ -113,7 +124,6 @@ export default function Notices() {
     setMessage("");
     setNoticeType("General");
     setSelectedFile(null);
-    setEditingId(null);
     setModalOpen(true);
   };
 
@@ -172,7 +182,7 @@ export default function Notices() {
                   {stat.label}
                 </Typography>
                 <Typography variant="h5" fontWeight={900} color={stat.color}>
-                  {stat.value}
+                  {loading ? "..." : stat.value}
                 </Typography>
               </Paper>
             ))}
@@ -180,9 +190,14 @@ export default function Notices() {
 
           {/* Notices List */}
           <Stack spacing={2}>
-            {filteredNotices.length > 0 ? (
+            {loading ? (
+              <Box display="flex" justifyContent="center" py={5}>
+                <CircularProgress sx={{ color: TEAL }} />
+              </Box>
+            ) : filteredNotices.length > 0 ? (
               filteredNotices.map((notice) => {
-                const typeStyle = TYPE_COLORS[notice.type];
+                // Safely fallback to General if the type from DB doesn't perfectly match our dictionary
+                const typeStyle = TYPE_COLORS[notice.type] || TYPE_COLORS["General"];
                 return (
                   <Paper
                     key={notice.id}
@@ -218,7 +233,7 @@ export default function Notices() {
                             {notice.title}
                           </Typography>
                           <Chip
-                            label={notice.type}
+                            label={notice.type || "General"}
                             size="small"
                             sx={{
                               bgcolor: typeStyle.bg,
@@ -232,25 +247,16 @@ export default function Notices() {
                           {notice.message}
                         </Typography>
                         <Typography variant="caption" color="#94a3b8">
-                          {new Date(notice.date).toLocaleDateString("en-IN", {
+                          {/* Spring Boot returns createdAt, mapping it here */}
+                          {notice.createdAt ? new Date(notice.createdAt).toLocaleDateString("en-IN", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
-                          })}
-                          {notice.file && ` • 📎 ${notice.file}`}
+                          }) : "Just now"}
                         </Typography>
                       </Box>
                       <Stack direction="row" spacing={0.5} flexShrink={0}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(notice)}
-                          sx={{
-                            color: TEAL,
-                            "&:hover": { bgcolor: "#f0fdf4" },
-                          }}
-                        >
-                          <EditRoundedIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
+                        {/* Note: Edit is disabled as we don't have a PUT endpoint in api.js yet */}
                         <IconButton
                           size="small"
                           onClick={() => handleDelete(notice.id)}
@@ -279,7 +285,7 @@ export default function Notices() {
               >
                 <NotificationsActiveRoundedIcon sx={{ fontSize: 48, color: "#cbd5e1", mb: 1 }} />
                 <Typography color="#94a3b8" fontWeight={600}>
-                  {searchQuery ? "No notices match your search" : "No notices yet"}
+                  {searchQuery ? "No notices match your search" : "No notices in the database yet"}
                 </Typography>
               </Paper>
             )}
@@ -294,7 +300,7 @@ export default function Notices() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
               <Typography variant="h6" fontWeight={800} color="white">
-                {editingId ? "Edit Notice" : "Create Notice"}
+                Create Notice
               </Typography>
               <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mt: 0.3 }}>
                 Share important information with students
@@ -386,7 +392,7 @@ export default function Notices() {
               boxShadow: "none",
             }}
           >
-            {isPublishing ? <CircularProgress size={20} /> : editingId ? "Update" : "Publish"}
+            {isPublishing ? <CircularProgress size={20} color="inherit" /> : "Publish to Database"}
           </Button>
         </DialogActions>
       </Dialog>

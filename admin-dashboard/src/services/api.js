@@ -25,5 +25,8 @@ export const login = (username, password) =>
 export const createNotice = (data) => api.post('/api/teacher/notices', data);
 export const getAllNotices = () => api.get('/api/teacher/notices');
 export const deleteNotice = (id) => api.delete(`/api/teacher/notices/${id}`);
+export const getDashboardStats = () => api.get('/api/dashboard/stats');
+export const getAllStudents = () => api.get('/api/admin/students');
+export const getAllTeachers = () => api.get('/api/admin/teachers');
 
 export default api;

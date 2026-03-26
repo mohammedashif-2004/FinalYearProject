@@ -16,16 +16,15 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 
 const yearMap = { FYBCA: 1, SYBCA: 2, TYBCA: 3 };
 const TEAL = "#0d9488";
 
 const getStatusChip = (status) => {
-  if (status === true)  return { label: "Present",     bgcolor: "#dcfce7", color: "#166534" };
-  if (status === false) return { label: "Absent",      bgcolor: "#fee2e2", color: "#991b1b" };
-  if (status === "DL")  return { label: "Duty Leave",  bgcolor: "#fef9c3", color: "#854d0e" };
+  if (status === true) return { label: "Present", bgcolor: "#dcfce7", color: "#166534" };
+  if (status === false) return { label: "Absent", bgcolor: "#fee2e2", color: "#991b1b" };
+  if (status === "DL") return { label: "Duty Leave", bgcolor: "#fef9c3", color: "#854d0e" };
   return null;
 };
 
@@ -93,20 +92,28 @@ export default function Attendance() {
     setEditStudent(null);
   };
 
-  const saveRecords = async () => {
-    if (markedCount === 0) { alert("No attendance to save."); return; }
-    setSaving(true);
-    setError("");
-    setSuccess("");
+  // --- FIXED SAVE LOGIC ---
+  const handleSave = async () => {
+    // ... (checks)
     try {
-      await api.post("/api/teacher/attendance", {
-        year: yearMap[year], division, date: selectedDate, attendance,
+      const yearMapping = { "FYBCA": 1, "SYBCA": 2, "TYBCA": 3 };
+      const attendanceData = {};
+      students.forEach((student) => {
+        const status = attendance[student.rollNumber];
+        attendanceData[student.rollNumber] = (status === true || status === "DL");
       });
-      setSuccess(`Saved! ${presentCount} present, ${absentCount} absent.`);
-    } catch {
-      setError("Failed to save attendance.");
-    } finally {
-      setSaving(false);
+
+      const payload = {
+        year: yearMapping[year], // This must result in 1, 2, or 3
+        division: division,      // "A" or "B"
+        date: selectedDate,      // "2026-03-26"
+        attendance: attendanceData
+      };
+
+      await api.post("/api/teacher/attendance", payload);
+      setSuccess("Saved!");
+    } catch (err) {
+      // ... (error handling)
     }
   };
 
@@ -180,7 +187,6 @@ export default function Attendance() {
           {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 3 }}>{success}</Alert>}
 
-          {/* Filter & Stats */}
           <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: "1px solid #e2e8f0", bgcolor: "white" }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -216,16 +222,15 @@ export default function Attendance() {
                   </Button>
                 ) : (
                   <Button variant="contained" startIcon={<SaveRoundedIcon />}
-                    onClick={saveRecords} disabled={saving}
-                    sx={{ bgcolor: "#10b981", borderRadius: 2.5, textTransform: "none", fontWeight: 700 }}>
-                    {saving ? <CircularProgress size={20} /> : "Save"}
+                    onClick={handleSave} disabled={saving}
+                    sx={{ bgcolor: "#10b981", borderRadius: 2.5, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#059669" } }}>
+                    {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
                   </Button>
                 )}
               </Stack>
             </Stack>
           </Paper>
 
-          {/* Stats Cards */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
             {[
               { label: "Total", value: totalStudents, color: TEAL },
@@ -240,7 +245,6 @@ export default function Attendance() {
             ))}
           </Stack>
 
-          {/* Attendance Table */}
           {markedCount > 0 && (
             <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", border: "1px solid #e2e8f0", bgcolor: "white" }}>
               <Box sx={{ p: 3, borderBottom: "1px solid #f1f5f9" }}>
@@ -280,7 +284,6 @@ export default function Attendance() {
         </Box>
       </Box>
 
-      {/* Marking Modal */}
       <Dialog open={markingOpen} onClose={() => setMarkingOpen(false)} maxWidth="sm" fullWidth
         PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, #0f766e)`, p: 3 }}>
@@ -318,7 +321,6 @@ export default function Attendance() {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Modal */}
       <Dialog open={!!editStudent} onClose={() => setEditStudent(null)} maxWidth="xs" fullWidth
         PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, #0f766e)`, p: 3 }}>

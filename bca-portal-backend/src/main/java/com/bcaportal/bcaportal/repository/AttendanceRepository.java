@@ -8,31 +8,24 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
-    // Get all attendance for a student in a month
-    List<Attendance> findByStudentAndMonthAndYear(
-            StudentProfile student, Integer month, Integer year);
+    Optional<Attendance> findByStudentAndDate(StudentProfile student, LocalDate date);
 
-    // Get attendance for a student on a specific date
-    boolean existsByStudentAndDate(StudentProfile student, LocalDate date);
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.present = true")
+    long countTotalPresentDays(@Param("studentId") Long studentId);
 
-    // Get all attendance for a division on a date
-    List<Attendance> findByStudent_YearAndStudent_DivisionAndDate(
-            Integer year, String division, LocalDate date);
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId")
+    long countTotalDaysMarked(@Param("studentId") Long studentId);
 
-    // Count present days for a student in a month
+    // Existing month-based methods for reports
     @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student = :student " +
             "AND a.month = :month AND a.year = :year AND a.present = true")
-    long countPresentDays(@Param("student") StudentProfile student,
-                          @Param("month") int month,
-                          @Param("year") int year);
+    long countPresentDays(@Param("student") StudentProfile student, @Param("month") int month, @Param("year") int year);
 
-    // Count total days marked for a student in a month
     @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student = :student " +
             "AND a.month = :month AND a.year = :year")
-    long countTotalDays(@Param("student") StudentProfile student,
-                        @Param("month") int month,
-                        @Param("year") int year);
+    long countTotalDays(@Param("student") StudentProfile student, @Param("month") int month, @Param("year") int year);
 }
