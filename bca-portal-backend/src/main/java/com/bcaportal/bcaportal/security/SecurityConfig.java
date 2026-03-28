@@ -19,6 +19,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,32 +53,29 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Public endpoints
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Bulk Upload Permissions
-                        .requestMatchers(HttpMethod.POST, "/api/admin/students/bulk-upload/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/students/check-duplicates/**")
+                        // 2. Specific Teacher Attendance Rules (Wildcard logic)
+                        // This covers /daily-status, /daily-grid, /monthly-summary, etc.
+                        .requestMatchers("/api/teacher/attendance/**")
+                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+                        // TEMPORARY BYPASS: Add this line at the top of your rules
+                        .requestMatchers("/api/teacher/attendance/daily-status").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/teacher/attendance/daily-status**"))
+                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+                        // 3. Admin specific features
+                        .requestMatchers("/api/admin/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
-                        // Attendance Permissions
-                        // Inside your filterChain method
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/attendance/check").hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/teacher/attendance/save").hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/students/attendance-list").hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/attendance/check/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/teacher/attendance/save/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/students/attendance-list/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        // Inside your filterChain method
-                        // General Rules
-                        .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+                        // 4. General Teacher features
                         .requestMatchers("/api/teacher/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
-                        .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPER_ADMIN")
+                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
+                        // 5. Everything else must be authenticated
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

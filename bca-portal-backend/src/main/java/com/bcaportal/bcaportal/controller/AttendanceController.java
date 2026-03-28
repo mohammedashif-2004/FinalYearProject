@@ -31,8 +31,45 @@ public class AttendanceController {
             @RequestParam Integer year,
             @RequestParam String division,
             @RequestParam String date) {
-        
+
         Map<String, Boolean> attendanceMap = attendanceService.getAttendanceMap(year, division, date);
         return ResponseEntity.ok(attendanceMap);
     }
+
+    // Add this to your AttendanceController.java
+    @GetMapping("/monthly-summary")
+    public ResponseEntity<List<Map<String, Object>>> getMonthlySummary(
+            @RequestParam Integer year,
+            @RequestParam String division,
+            @RequestParam Integer month,
+            @RequestParam Integer calendarYear) {
+        // This month parameter now changes based on the React dropdown
+        System.out.println("Fetching Summary for: Year " + year + ", Div " + division + ", Month " + month);
+
+        List<Map<String, Object>> summary = attendanceService.getMonthlySummary(year, division, month, calendarYear);
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/daily-grid")
+    public ResponseEntity<Map<String, Object>> getDailyGrid(
+            @RequestParam Integer year,
+            @RequestParam String division,
+            @RequestParam Integer month,
+            @RequestParam Integer calendarYear,
+            @RequestParam(required = false) String startDate, // "YYYY-MM-DD"
+            @RequestParam(required = false) String endDate) {
+
+        Map<String, Object> gridData = attendanceService.getAttendanceGrid(
+                year, division, month, calendarYear, startDate, endDate);
+        return ResponseEntity.ok(gridData);
+    }
+
+    @GetMapping("/daily-status")
+public ResponseEntity<List<Map<String, Object>>> getDailyStatus(
+        @RequestParam Integer year,
+        @RequestParam String division,
+        @RequestParam String date) {
+    
+    return ResponseEntity.ok(attendanceService.getDailyStatusList(year, division, date));
+}
 }
