@@ -29,7 +29,7 @@ const getStatusChip = (status) => {
 };
 
 export default function Attendance() {
-  const [year, setYear] = useState("FYBCA");
+  const [year, setYear] = useState(1);
   const [division, setDivision] = useState("A");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [attendance, setAttendance] = useState({});
@@ -43,19 +43,39 @@ export default function Attendance() {
   const [markingDone, setMarkingDone] = useState(false);
   const [editStudent, setEditStudent] = useState(null);
 
-  useEffect(() => { fetchStudents(); }, [year, division]);
-  useEffect(() => { setMarkingDone(false); setAttendance({}); }, [year, division, selectedDate]);
+  // --- UPDATED EFFECT: Triggers whenever Year, Div, or Date changes ---
+  useEffect(() => {
+    loadDashboardData();
+  }, [year, division, selectedDate]);
 
-  const fetchStudents = async () => {
+  // --- UPDATED LOGIC: Combined Fetching ---
+  const loadDashboardData = async () => {
     setLoading(true);
     setError("");
-    setAttendance({});
-    setMarkingDone(false);
+    setSuccess("");
     try {
-      const response = await api.get(`/api/admin/students/division?year=${yearMap[year]}&division=${division}`);
-      setStudents(response.data);
-    } catch {
-      setError("Failed to load students. Check backend.");
+      // 1. Fetch Students
+      const studentRes = await api.get("/api/admin/students/attendance-list", {
+        params: { year, division }
+      });
+      setStudents(studentRes.data);
+
+      // 2. Fetch Existing Attendance for this Date
+      const checkRes = await api.get("/api/teacher/attendance/check", {
+        params: { year, division, date: selectedDate } // selectedDate must be "2026-03-28"
+      });
+
+      if (checkRes.data && Object.keys(checkRes.data).length > 0) {
+        setAttendance(checkRes.data);
+        setMarkingDone(true); // If data exists, show it immediately
+      } else {
+        setAttendance({});
+        setMarkingDone(false); // If no data, allow fresh marking
+      }
+
+    } catch (err) {
+      console.error("Load Error:", err);
+      setError("Error loading data. Check backend connection.");
     } finally {
       setLoading(false);
     }
@@ -92,28 +112,26 @@ export default function Attendance() {
     setEditStudent(null);
   };
 
-  // --- FIXED SAVE LOGIC ---
   const handleSave = async () => {
-    // ... (checks)
-    try {
-      const yearMapping = { "FYBCA": 1, "SYBCA": 2, "TYBCA": 3 };
-      const attendanceData = {};
-      students.forEach((student) => {
-        const status = attendance[student.rollNumber];
-        attendanceData[student.rollNumber] = (status === true || status === "DL");
-      });
+    setSaving(true);
+    setSuccess("");
+    setError("");
 
+    try {
       const payload = {
-        year: yearMapping[year], // This must result in 1, 2, or 3
-        division: division,      // "A" or "B"
-        date: selectedDate,      // "2026-03-26"
-        attendance: attendanceData
+        year: year,
+        division: division,
+        date: selectedDate,
+        attendance: attendance // Sending the attendance state directly
       };
 
-      await api.post("/api/teacher/attendance", payload);
-      setSuccess("Saved!");
+      const response = await api.post("/api/teacher/attendance/save", payload);
+      setSuccess("✅ Attendance saved successfully!");
+      setMarkingDone(true);
     } catch (err) {
-      // ... (error handling)
+      setError("❌ Failed to save: " + (err.response?.data || "Server Error"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -191,10 +209,14 @@ export default function Attendance() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 140 }}>
                 <InputLabel>Year</InputLabel>
-                <Select value={year} label="Year" onChange={(e) => setYear(e.target.value)} sx={{ borderRadius: 2 }}>
-                  <MenuItem value="FYBCA">FYBCA</MenuItem>
-                  <MenuItem value="SYBCA">SYBCA</MenuItem>
-                  <MenuItem value="TYBCA">TYBCA</MenuItem>
+                <Select
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  label="Year"
+                >
+                  <MenuItem value={1}>FYBCA</MenuItem>
+                  <MenuItem value={2}>SYBCA</MenuItem>
+                  <MenuItem value={3}>TYBCA</MenuItem>
                 </Select>
               </FormControl>
               <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -224,13 +246,14 @@ export default function Attendance() {
                   <Button variant="contained" startIcon={<SaveRoundedIcon />}
                     onClick={handleSave} disabled={saving}
                     sx={{ bgcolor: "#10b981", borderRadius: 2.5, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: "#059669" } }}>
-                    {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
+                    {saving ? <CircularProgress size={20} color="inherit" /> : "Update"}
                   </Button>
                 )}
               </Stack>
             </Stack>
           </Paper>
 
+          {/* Rest of your UI components (Stats and Table) stay exactly the same */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
             {[
               { label: "Total", value: totalStudents, color: TEAL },
@@ -245,45 +268,44 @@ export default function Attendance() {
             ))}
           </Stack>
 
-          {markedCount > 0 && (
-            <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", border: "1px solid #e2e8f0", bgcolor: "white" }}>
-              <Box sx={{ p: 3, borderBottom: "1px solid #f1f5f9" }}>
-                <Typography fontWeight={800} color="#0f172a">Attendance Record</Typography>
-              </Box>
-              <Table>
-                <TableHead sx={{ bgcolor: "#f8fafc" }}>
-                  <TableRow>
-                    {["Roll No", "Student Name", "PR Number", "Status"].map((h) => (
-                      <TableCell key={h} sx={{ fontWeight: 700, color: "#475569", fontSize: "0.8rem" }}>{h}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {students.map((student) => {
-                    const status = attendance[student.rollNumber];
-                    const chip = getStatusChip(status);
-                    return (
-                      <TableRow key={student.prNumber} hover onClick={() => handleRowClick(student)}
-                        sx={{ cursor: "pointer", "&:hover": { bgcolor: "#f0fdf4" } }}>
-                        <TableCell sx={{ fontWeight: 700 }}>{student.rollNumber}</TableCell>
-                        <TableCell>{student.fullName}</TableCell>
-                        <TableCell sx={{ color: "#64748b" }}>{student.prNumber}</TableCell>
-                        <TableCell>
-                          {chip ? (
-                            <Chip label={chip.label} size="small"
-                              sx={{ bgcolor: chip.bgcolor, color: chip.color, fontWeight: 700 }} />
-                          ) : <Typography variant="body2" color="#cbd5e1">—</Typography>}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </Paper>
-          )}
+          <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", border: "1px solid #e2e8f0", bgcolor: "white" }}>
+            <Box sx={{ p: 3, borderBottom: "1px solid #f1f5f9" }}>
+              <Typography fontWeight={800} color="#0f172a">Attendance Record</Typography>
+            </Box>
+            <Table>
+              <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                <TableRow>
+                  {["Roll No", "Student Name", "PR Number", "Status"].map((h) => (
+                    <TableCell key={h} sx={{ fontWeight: 700, color: "#475569", fontSize: "0.8rem" }}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {students.map((student) => {
+                  const status = attendance[student.rollNumber];
+                  const chip = getStatusChip(status);
+                  return (
+                    <TableRow key={student.prNumber} hover onClick={() => handleRowClick(student)}
+                      sx={{ cursor: "pointer", "&:hover": { bgcolor: "#f0fdf4" } }}>
+                      <TableCell sx={{ fontWeight: 700 }}>{student.rollNumber}</TableCell>
+                      <TableCell>{student.fullName}</TableCell>
+                      <TableCell sx={{ color: "#64748b" }}>{student.prNumber}</TableCell>
+                      <TableCell>
+                        {chip ? (
+                          <Chip label={chip.label} size="small"
+                            sx={{ bgcolor: chip.bgcolor, color: chip.color, fontWeight: 700 }} />
+                        ) : <Typography variant="body2" color="#cbd5e1">—</Typography>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Paper>
         </Box>
       </Box>
 
+      {/* Dialogs for Marking and Editing stay the same */}
       <Dialog open={markingOpen} onClose={() => setMarkingOpen(false)} maxWidth="sm" fullWidth
         PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
         <Box sx={{ background: `linear-gradient(135deg, #064e3b, #0f766e)`, p: 3 }}>

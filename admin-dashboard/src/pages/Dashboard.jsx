@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import api from "../services/api";
-
+import BulkStudentUpload from "../components/BulkStudentUpload";
 const CARDS = [
   { label: "Students", key: "totalStudents", sub: "Active enrolled", color: "#0d9488", bg: "linear-gradient(135deg,#0d9488,#0f766e)", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
   { label: "Teachers", key: "totalTeachers", sub: "All active", color: "#3b82f6", bg: "linear-gradient(135deg,#3b82f6,#1d4ed8)", icon: "M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" },
@@ -51,9 +51,25 @@ export default function Dashboard() {
     ph: { padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 },
   };
 
+
+  const handleResetDatabase = async () => {
+    const confirmClear = window.confirm("⚠️ DANGER: This will permanently delete ALL students and their login accounts. Admins/Teachers will NOT be affected. Proceed?");
+    
+    if (confirmClear) {
+        try {
+            await api.delete("/api/admin/students/all");
+            alert("Database Cleared! You can now perform a fresh upload.");
+            window.location.reload(); // Refresh to update counts to 0
+        } catch (err) {
+            console.error(err);
+            alert("Reset failed. Check if you have Admin permissions.");
+        }
+    }
+};
+
   return (
     <div style={s.page}>
-      <Sidebar activePath="/dashboard" />
+      <Sidebar activePath="/dashboard" studentCount={stats.totalStudents} />
       <div style={s.main}>
         <Topbar />
         <div style={s.body}>
@@ -81,6 +97,39 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+
+          <div style={{ 
+    background: "white", 
+    borderRadius: 10, 
+    border: "1px solid #e2e8f0", 
+    padding: "16px",
+    marginBottom: "12px" 
+}}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Bulk Onboarding</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Upload Excel to add students to FY, SY, or TY</div>
+        </div>
+
+        <button 
+    onClick={handleResetDatabase}
+    style={{ 
+        fontSize: '10px', 
+        color: '#ef4444', 
+        fontWeight: 600, 
+        background: 'none', 
+        border: 'none', 
+        cursor: 'pointer',
+        marginRight: '15px'
+    }}
+>
+    Reset Student DB ↺
+</button>
+        {/* Optional: Add a "Download Template" link here */}
+        <a href="/student_template.xlsx" style={{ fontSize: 15, color: "#0d9488", fontWeight: 600 }}>Download Template ↓</a>
+    </div>
+    <BulkStudentUpload />
+</div>
 
           {/* Bottom Row */}
           <div style={s.bottom}>

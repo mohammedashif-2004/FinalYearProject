@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
@@ -26,15 +27,36 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            if (jwtUtil.validateToken(token)) {
-                String username = jwtUtil.extractUsername(token);
-                String role = jwtUtil.extractRole(token); // Should be "SUPER_ADMIN"
+            
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    String username = jwtUtil.extractUsername(token);
+                    String role = jwtUtil.extractRole(token); 
 
-                // Create authentication with the raw role as an authority
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        username, null, List.of(new SimpleGrantedAuthority(role))
-                );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    // 1. FORMAT THE ROLE: Ensure it always has ROLE_ prefix
+                    // This is the fix for the 403 Forbidden error
+                    String formattedRole = (role != null && !role.startsWith("ROLE_")) ? "ROLE_" + role : role;
+
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        // 2. CREATE AUTHENTICATION: Pass the formatted role as an authority
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                username, 
+                                null, 
+                                List.of(new SimpleGrantedAuthority(formattedRole))
+                        );
+                        
+                        // 3. SET DETAILS: Important for Spring Security's internal logging
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        
+                        // DEBUG: Uncomment the next line to see the authority in your IntelliJ console
+                        // System.out.println("User: " + username + " authenticated with: " + formattedRole);
+                    }
+                }
+            } catch (Exception e) {
+                // If token is invalid or expired, clear context
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);

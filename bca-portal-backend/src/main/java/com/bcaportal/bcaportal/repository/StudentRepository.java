@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<StudentProfile, Long> {
+    boolean existsByRollNumberAndYearAndDivision(String rollNumber, Integer year, String division);
     List<StudentProfile> findByYearAndDivision(Integer year, String division);
     Optional<StudentProfile> findByPrNumber(String prNumber);
     Optional<StudentProfile> findByUserId(Long userId);

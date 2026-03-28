@@ -6,8 +6,8 @@ import java.util.Map;
 
 @Data
 public class AttendanceRequest {
-    private Integer year;
-    private String division;
-    private LocalDate date;
-    private Map<String, Boolean> attendance; // key: rollNumber, value: true/false
+    private Integer year;      // Backend expects 1, 2, or 3
+    private String division;   // "A" or "B"
+    private LocalDate date;    // "YYYY-MM-DD"
+    private Map<String, Boolean> attendance; // Key: rollNumber (String), Value: isPresent (Boolean)
 }
