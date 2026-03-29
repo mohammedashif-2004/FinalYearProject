@@ -4,21 +4,19 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import api from "../services/api";
 import BulkStudentUpload from "../components/BulkStudentUpload";
-import { Box, Typography, Paper, Grid } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 const CARDS = [
-  { label: "Students", key: "totalStudents", sub: "Active enrolled", color: "#0d9488", bg: "linear-gradient(135deg,#0d9488,#0f766e)", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
+  { label: "Students", key: "totalStudents", sub: "View Directory", color: "#0d9488", bg: "linear-gradient(135deg,#0d9488,#0f766e)", icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
   { label: "Teachers", key: "totalTeachers", sub: "All active", color: "#3b82f6", bg: "linear-gradient(135deg,#3b82f6,#1d4ed8)", icon: "M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" },
   { label: "Avg Attendance", key: "avgAttendance", sub: "Overall this month", color: "#10b981", bg: "linear-gradient(135deg,#10b981,#059669)", icon: "M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z", suffix: "%" },
-  { label: "Low Attendance", key: "lowAttendance", sub: "Students below 75%", color: "#f59e0b", bg: "linear-gradient(135deg,#f59e0b,#d97706)", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" },
+  { label: "Low Attendance", key: "lowAttendance", sub: "Below 75%", color: "#f59e0b", bg: "linear-gradient(135deg,#f59e0b,#d97706)", icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" },
 ];
 
 const YEAR_LABEL = { 1: "FYBCA", 2: "SYBCA", 3: "TYBCA" };
 
 export default function Dashboard() {
-
   const navigate = useNavigate();
-  // Added recentActivity array to the default state to prevent mapping errors before data loads
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -41,6 +39,15 @@ export default function Dashboard() {
       });
   }, []);
 
+  const handleDivisionClick = (yearValue, divLabel) => {
+    navigate(`/attendance-summary?year=${yearValue}&division=${divLabel}`);
+  };
+
+  const handleStudentCardClick = () => {
+    // Navigate to directory (defaulting to FY-A)
+    navigate(`/admin/students?year=1&division=A`);
+  };
+
   const s = {
     page: { display: "flex", height: "100vh", background: "#f1f5f9", overflow: "hidden" },
     main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" },
@@ -55,68 +62,6 @@ export default function Dashboard() {
     ph: { padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 },
   };
 
-
-  const divisions = [
-    { name: "FYBCA - A", yearVal: 1, divLetter: "A" },
-    { name: "FYBCA - B", yearVal: 1, divLetter: "B" },
-    { name: "SYBCA - A", yearVal: 2, divLetter: "A" },
-    { name: "SYBCA - B", yearVal: 2, divLetter: "B" },
-    { name: "TYBCA - A", yearVal: 3, divLetter: "A" },
-    { name: "TYBCA - B", yearVal: 3, divLetter: "B" },
-  ];
-
-  const handleResetDatabase = async () => {
-    const confirmClear = window.confirm("⚠️ DANGER: This will permanently delete ALL students and their login accounts. Admins/Teachers will NOT be affected. Proceed?");
-
-    if (confirmClear) {
-      try {
-        await api.delete("/api/admin/students/all");
-        alert("Database Cleared! You can now perform a fresh upload.");
-        window.location.reload(); // Refresh to update counts to 0
-      } catch (err) {
-        console.error(err);
-        alert("Reset failed. Check if you have Admin permissions.");
-      }
-    }
-  };
-
-  // Use navigate to go to the summary page
-  const handleDivisionClick = (yearValue, divLabel) => {
-    navigate(`/attendance-summary?year=${yearValue}&division=${divLabel}`);
-  };
-
-  {
-    divisions.map((div) => (
-      <Box
-        key={div.name}
-        // --- THIS IS THE CLICK TRIGGER ---
-        onClick={() => handleDivisionClick(div.yearVal, div.divLetter)}
-        // ----------------------------------
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mb: 2,
-          p: 1.5,           // Padding makes the "click area" bigger
-          cursor: 'pointer', // Changes the mouse to a "hand" icon
-          borderRadius: 2,
-          '&:hover': { bgcolor: '#f8fafc' } // Background changes when you hover
-        }}
-      >
-        <Typography sx={{ width: 100, fontWeight: 600 }}>{div.name}</Typography>
-
-        {/* Progress Bar */}
-        <Box sx={{ flex: 1, mx: 2, height: 8, bgcolor: '#eee', borderRadius: 5 }}>
-          <Box sx={{ width: '50%', height: '100%', bgcolor: '#ef4444', borderRadius: 5 }} />
-        </Box>
-
-        <Typography fontWeight={700} color="#ef4444">50%</Typography>
-      </Box>
-    ))
-  }
-
-
-
-
   return (
     <div style={s.page}>
       <Sidebar activePath="/dashboard" studentCount={stats.totalStudents} />
@@ -128,6 +73,7 @@ export default function Dashboard() {
           <div style={s.cardsGrid}>
             {CARDS.map((card) => (
               <div key={card.label} style={s.card}
+                onClick={() => card.key === "totalStudents" && handleStudentCardClick()}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(0,0,0,0.08)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 <div style={s.cardTop(card.bg)}>
@@ -148,118 +94,66 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div style={{
-            background: "white",
-            borderRadius: 10,
-            border: "1px solid #e2e8f0",
-            padding: "16px",
-            marginBottom: "12px"
-          }}>
+          {/* Bulk Onboarding */}
+          <div style={{ background: "white", borderRadius: 10, border: "1px solid #e2e8f0", padding: "16px", marginBottom: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Bulk Onboarding</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>Upload Excel to add students to FY, SY, or TY</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>Upload Excel to add students</div>
               </div>
-
-              <button
-                onClick={handleResetDatabase}
-                style={{
-                  fontSize: '10px',
-                  color: '#ef4444',
-                  fontWeight: 600,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginRight: '15px'
-                }}
-              >
-                Reset Student DB ↺
-              </button>
-              {/* Optional: Add a "Download Template" link here */}
-              <a href="/student_template.xlsx" style={{ fontSize: 15, color: "#0d9488", fontWeight: 600 }}>Download Template ↓</a>
+              <a href="/student_template.xlsx" style={{ fontSize: 12, color: "#0d9488", fontWeight: 600 }}>Download Template ↓</a>
             </div>
             <BulkStudentUpload />
           </div>
 
-          {/* Bottom Row */}
           <div style={s.bottom}>
-
-            {/* Division Attendance */}
+            {/* Division Attendance Section */}
             <div style={s.panel}>
               <div style={s.ph}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Division-wise Attendance</div>
-                <div style={{ fontSize: 10, color: "#0d9488", fontWeight: 600, cursor: "pointer" }}>View all →</div>
               </div>
               <div style={{ padding: "5px 14px 10px", overflowY: "auto" }}>
                 {loading ? (
-                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>Loading actual data...</div>
-                ) : stats.divisions?.length > 0 ? (
-                  stats.divisions.map((d, i) => {
-                    const pct = d.attendancePercentage || 0;
-                    return (
-                      <div
-                        key={i}
-                        // --- THIS IS THE FIX: ADDING THE CLICK TO THE REAL DATA ---
-                        onClick={() => handleDivisionClick(d.year, d.division)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 9,
-                          padding: "7px 0",
-                          cursor: "pointer", // Makes it look clickable
-                          borderBottom: i < stats.divisions.length - 1 ? "1px solid #f8fafc" : "none"
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-                        onMouseLeave={e => e.currentTarget.style.background = "none"}
-                      >
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", width: 78, flexShrink: 0 }}>
-                          {YEAR_LABEL[d.year]} – {d.division}
-                        </div>
-                        <div style={{ flex: 1, height: 5, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ height: "100%", borderRadius: 3, background: pct < 75 ? "#ef4444" : "#0d9488", width: `${pct}%` }} />
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, minWidth: 33, textAlign: "right", color: pct < 75 ? "#ef4444" : "#0d9488" }}>
-                          {pct}%
-                        </div>
+                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>Loading...</div>
+                ) : stats.divisions?.map((d, i) => {
+                  const pct = d.attendancePercentage || 0;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => handleDivisionClick(d.year, d.division)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 9, padding: "10px 0", cursor: "pointer",
+                        borderBottom: i < stats.divisions.length - 1 ? "1px solid #f8fafc" : "none"
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                      onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", width: 78 }}>
+                        {YEAR_LABEL[d.year]} – {d.division}
                       </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>No attendance data recorded yet.</div>
-                )}
+                      <Box sx={{ flex: 1, height: 6, bgcolor: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+                        <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: pct < 75 ? '#ef4444' : '#0d9488', borderRadius: 3 }} />
+                      </Box>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: pct < 75 ? "#ef4444" : "#0d9488" }}>{pct}%</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Recent Activity Section */}
             <div style={s.panel}>
-              <div style={s.ph}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Recent Activity</div>
-                <div style={{ fontSize: 10, color: "#0d9488", fontWeight: 600, cursor: "pointer" }}>View all →</div>
-              </div>
-              <div style={{ padding: "5px 14px 8px", overflowY: "auto" }}>
-                {loading ? (
-                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>Loading activity stream...</div>
-                ) : stats.recentActivity?.length > 0 ? (
-                  stats.recentActivity.map((a, i) => (
-                    <div key={i} style={{ display: "flex", gap: 9, padding: "7px 0", borderBottom: i < stats.recentActivity.length - 1 ? "1px solid #f8fafc" : "none", alignItems: "flex-start" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, paddingTop: 3 }}>
-                        {/* Assuming the backend sends a 'color' property, otherwise defaulting to Teal */}
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: a.color || "#0d9488", flexShrink: 0 }} />
-                        {i < stats.recentActivity.length - 1 && <div style={{ width: 1, flex: 1, minHeight: 10, background: "#f1f5f9" }} />}
-                      </div>
-                      <div>
-                        {/* Assuming backend sends 'title', 'timeAgo', 'badgeText', and 'badgeColor' */}
-                        <div style={{ fontSize: 11, color: "#334155", fontWeight: 500 }}>{a.title}</div>
-                        <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 1 }}>{a.timeAgo}</div>
-                        {a.badgeText && (
-                          <span style={{ display: "inline-block", fontSize: 8.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, marginTop: 2, background: `${a.color || '#0d9488'}15`, color: a.color || "#0d9488" }}>{a.badgeText}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ padding: 14, color: "#94a3b8", fontSize: 12 }}>No recent activity.</div>
-                )}
+              <div style={s.ph}><div style={{ fontSize: 12, fontWeight: 700 }}>Recent Activity</div></div>
+              <div style={{ padding: "10px 14px", overflowY: "auto" }}>
+                {stats.recentActivity?.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 9, mb: 1, pb: 1, borderBottom: "1px solid #f8fafc" }}>
+                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: a.color || "#0d9488", mt: 0.5 }} />
+                     <div>
+                        <div style={{ fontSize: 11, color: "#334155" }}>{a.title}</div>
+                        <div style={{ fontSize: 9, color: "#94a3b8" }}>{a.timeAgo}</div>
+                     </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

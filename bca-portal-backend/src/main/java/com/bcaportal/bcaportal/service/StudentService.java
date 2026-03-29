@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +45,8 @@ public class StudentService {
 
             while (rows.hasNext()) {
                 Row currentRow = rows.next();
-                if (currentRow.getRowNum() == 0 || isRowEmpty(currentRow)) continue;
+                if (currentRow.getRowNum() == 0 || isRowEmpty(currentRow))
+                    continue;
 
                 try {
                     String fullName = formatter.formatCellValue(currentRow.getCell(1)).trim();
@@ -49,10 +54,15 @@ public class StudentService {
                     String rollNumber = formatter.formatCellValue(currentRow.getCell(3)).trim();
                     int yearVal = parseYear(currentRow.getCell(4), formatter);
                     String division = formatter.formatCellValue(currentRow.getCell(5)).trim().toUpperCase();
-                    String sPhone = (currentRow.getCell(6) != null) ? formatter.formatCellValue(currentRow.getCell(6)).trim() : "";
-                    String pPhone = (currentRow.getCell(7) != null) ? formatter.formatCellValue(currentRow.getCell(7)).trim() : "";
+                    String sPhone = (currentRow.getCell(6) != null)
+                            ? formatter.formatCellValue(currentRow.getCell(6)).trim()
+                            : "";
+                    String pPhone = (currentRow.getCell(7) != null)
+                            ? formatter.formatCellValue(currentRow.getCell(7)).trim()
+                            : "";
 
-                    if (prNumber.isEmpty()) continue;
+                    if (prNumber.isEmpty())
+                        continue;
 
                     StudentRequest request = new StudentRequest();
                     request.setUsername(prNumber);
@@ -81,14 +91,17 @@ public class StudentService {
     }
 
     private boolean isRowEmpty(Row row) {
-        if (row == null) return true;
+        if (row == null)
+            return true;
         Cell cell = row.getCell(1);
         return cell == null || cell.getCellType() == CellType.BLANK;
     }
 
     private int parseYear(Cell cell, DataFormatter formatter) {
-        if (cell == null) return 1;
-        if (cell.getCellType() == CellType.NUMERIC) return (int) cell.getNumericCellValue();
+        if (cell == null)
+            return 1;
+        if (cell.getCellType() == CellType.NUMERIC)
+            return (int) cell.getNumericCellValue();
         String val = formatter.formatCellValue(cell).trim();
         return val.isEmpty() ? 1 : Integer.parseInt(val);
     }
@@ -98,18 +111,18 @@ public class StudentService {
         // 1. Check if Username/PRN already exists
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             log.warn("Duplicate found: PR Number {} already exists. Skipping...", request.getUsername());
-            return null; 
+            return null;
         }
 
         // 2. Check if Roll Number already exists in the same Year and Division
         // Note: You must add this method to your StudentRepository interface
         if (studentRepository.existsByRollNumberAndYearAndDivision(
                 request.getRollNumber(), request.getYear(), request.getDivision())) {
-            log.warn("Duplicate found: Roll Number {} in Year {} Div {} already exists. Skipping...", 
+            log.warn("Duplicate found: Roll Number {} in Year {} Div {} already exists. Skipping...",
                     request.getRollNumber(), request.getYear(), request.getDivision());
             return null;
         }
-        
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -134,11 +147,13 @@ public class StudentService {
     }
 
     public List<StudentResponse> getStudentsByDivision(Integer year, String division) {
-        return studentRepository.findByYearAndDivision(year, division).stream().map(this::mapToResponse).collect(Collectors.toList());
+        return studentRepository.findByYearAndDivision(year, division).stream().map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     public StudentResponse getStudentByPrNumber(String prNumber) {
-        return studentRepository.findByPrNumber(prNumber).map(this::mapToResponse).orElseThrow(() -> new RuntimeException("Not found"));
+        return studentRepository.findByPrNumber(prNumber).map(this::mapToResponse)
+                .orElseThrow(() -> new RuntimeException("Not found"));
     }
 
     @Transactional
@@ -150,11 +165,14 @@ public class StudentService {
                 .map(User::getId)
                 .collect(Collectors.toList());
         studentRepository.deleteAll();
-        if (!userIds.isEmpty()) userRepository.deleteAllById(userIds);
+        if (!userIds.isEmpty())
+            userRepository.deleteAllById(userIds);
     }
 
     private StudentResponse mapToResponse(StudentProfile p) {
-        return new StudentResponse(p.getId(), p.getUser().getFullName(), p.getUser().getUsername(), p.getPrNumber(), p.getRollNumber(), p.getPhoneNumber(), p.getYear(), p.getDivision(), p.getParentName(), p.getParentPhone());
+        return new StudentResponse(p.getId(), p.getUser().getFullName(), p.getUser().getUsername(), p.getPrNumber(),
+                p.getRollNumber(), p.getPhoneNumber(), p.getYear(), p.getDivision(), p.getParentName(),
+                p.getParentPhone());
     }
 
     public String deleteStudent(Long id) {
@@ -163,4 +181,43 @@ public class StudentService {
         userRepository.delete(p.getUser());
         return "Deleted";
     }
+
+    @Transactional
+    public void updateStudentDetails(Long id, Map<String, String> updates) {
+        StudentProfile student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Check for 'prNumber' (Case sensitive!)
+        if (updates.containsKey("prNumber")) {
+            String pr = updates.get("prNumber");
+            // Only save if it's not null and not just empty spaces
+            if (pr != null && !pr.trim().isEmpty()) {
+                student.setPrNumber(pr.trim());
+            }
+        }
+
+        // Repeat for others...
+        if (updates.containsKey("phoneNumber"))
+            student.setPhoneNumber(updates.get("phoneNumber"));
+        if (updates.containsKey("parentName"))
+            student.setParentName(updates.get("parentName"));
+        if (updates.containsKey("gender"))
+            student.setGender(updates.get("gender"));
+        if (updates.containsKey("category"))
+            student.setCategory(updates.get("category"));
+        if (updates.containsKey("stateOfDomicile"))
+            student.setStateOfDomicile(updates.get("stateOfDomicile"));
+
+        studentRepository.save(student);
+    }
+
+    // Inside StudentService.java
+@Transactional
+public void deleteStudentById(Long id) {
+    // Optional: Check if student exists before deleting
+    if (!studentRepository.existsById(id)) {
+        throw new RuntimeException("Student not found");
+    }
+    studentRepository.deleteById(id);
+}
 }

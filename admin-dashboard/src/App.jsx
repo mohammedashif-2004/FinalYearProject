@@ -12,6 +12,7 @@ import TeacherProfile from "./pages/TeacherProfile";
 import StudentList from "./pages/StudentList";
 import AttendanceSummary from "./pages/AttendanceSummary";
 import ProtectedRoute from "./components/ProtectedRoute";
+import StudentDirectory from "./pages/StudentDirectory";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/timetable" element={<ProtectedRoute><TimeTable /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
         <Route path="/students" element={<ProtectedRoute><StudentList /></ProtectedRoute>} />
+        <Route path="/admin/students" element={<StudentDirectory />} />
       </Routes>
     </BrowserRouter>
   );

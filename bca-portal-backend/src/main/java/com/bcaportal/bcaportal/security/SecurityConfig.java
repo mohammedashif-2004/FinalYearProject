@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/teacher/attendance/**")
                         .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
+                        .requestMatchers("/api/admin/students/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+
                         // TEMPORARY BYPASS: Add this line at the top of your rules
                         .requestMatchers("/api/teacher/attendance/daily-status").permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/api/teacher/attendance/daily-status**"))

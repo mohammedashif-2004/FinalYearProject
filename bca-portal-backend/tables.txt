@@ -140,3 +140,12 @@ Body: form-data
   Key:   file
   Type:  File  ← change from Text to File
   Value: select your Excel file
+
+
+for dashboard students card 
+  Recommended Next Steps:
+Export to Excel: Add a button to download this filtered list (e.g., TYBCA - Div B) as an .xlsx file for offline use or printing.
+
+Global Search: Add a search bar in the Topbar that allows you to find a student by PR Number or Name across all years and divisions instantly (without having to switch the dropdowns first).
+
+Student Profile View: Create a "View Details" page where you can see even more information (like their attendance history or uploaded documents) by clicking on their name.
