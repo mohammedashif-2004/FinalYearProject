@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -28,6 +29,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -35,55 +37,60 @@ public class SecurityConfig {
     private final UserRepository userRepository;
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        return username -> {
-            var user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-            return new org.springframework.security.core.userdetails.User(
-                    user.getUsername(),
-                    user.getPassword(),
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
-        };
-    }
+public UserDetailsService userDetailsService() {
+    return username -> {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        
+        // 1. Get the role name from the database (e.g., "SUPER_ADMIN" or "ROLE_SUPER_ADMIN")
+        String roleName = user.getRole().name();
+        
+        // 2. Format it safely: only add "ROLE_" if it's missing
+        String finalRole = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
+        
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority(finalRole))); // 3. Use the finalRole here
+    };
+}
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // 1. Public endpoints
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .cors(Customizer.withDefaults())
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            // 1. Public endpoints
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/auth/**").permitAll()
 
-                        // 2. Specific Teacher Attendance Rules (Wildcard logic)
-                        // This covers /daily-status, /daily-grid, /monthly-summary, etc.
-                        .requestMatchers("/api/teacher/attendance/**")
-                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+            // 2. TIMETABLE: Only Super Admin (Must be above general /api/admin/**)
+            .requestMatchers("/api/admin/timetable/**").hasAnyAuthority("ROLE_SUPER_ADMIN")
 
-                        .requestMatchers("/api/admin/students/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+            // 3. STUDENTS: Admin & Super Admin
+            .requestMatchers("/api/admin/students/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
-                        // TEMPORARY BYPASS: Add this line at the top of your rules
-                        .requestMatchers("/api/teacher/attendance/daily-status").permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api/teacher/attendance/daily-status**"))
-                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+            // 4. TEACHER ATTENDANCE: Public bypass for debugging (optional)
+            .requestMatchers("/api/teacher/attendance/daily-status").permitAll()
+            
+            // 5. ATTENDANCE: Specific Teacher Rules
+            .requestMatchers("/api/teacher/attendance/**").hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
-                        // 3. Admin specific features
-                        .requestMatchers("/api/admin/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+            // 6. GENERAL ADMIN: Everything else under /api/admin
+            .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
-                        // 4. General Teacher features
-                        .requestMatchers("/api/teacher/**")
-                        .hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
+            // 7. GENERAL TEACHER: Everything else under /api/teacher
+            .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")
 
-                        // 5. Everything else must be authenticated
-                        .anyRequest().authenticated())
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            // 8. CATCH-ALL
+            .anyRequest().authenticated())
+        .authenticationProvider(authenticationProvider())
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+}
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

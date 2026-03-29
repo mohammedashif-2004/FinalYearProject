@@ -1,5 +1,6 @@
 package com.bcaportal.bcaportal.entity;
 
+
 import jakarta.persistence.*;
 import lombok.*;
 

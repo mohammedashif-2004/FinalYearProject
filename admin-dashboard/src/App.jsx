@@ -13,6 +13,10 @@ import StudentList from "./pages/StudentList";
 import AttendanceSummary from "./pages/AttendanceSummary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import StudentDirectory from "./pages/StudentDirectory";
+import BulkTeacherUpload from "./pages/BulkTeacherUpload";
+import TeacherDirectory from "./pages/TeacherDirectory";
+import SubjectManager from "./pages/SubjectManager";
+
 
 function App() {
   return (
@@ -25,10 +29,10 @@ function App() {
         {/* Protected routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-        
+
         {/* THE FIX: Added the Summary Route here */}
         <Route path="/attendance-summary" element={<ProtectedRoute><AttendanceSummary /></ProtectedRoute>} />
-        
+
         <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
         <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
@@ -36,7 +40,12 @@ function App() {
         <Route path="/timetable" element={<ProtectedRoute><TimeTable /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><TeacherProfile /></ProtectedRoute>} />
         <Route path="/students" element={<ProtectedRoute><StudentList /></ProtectedRoute>} />
-        <Route path="/admin/students" element={<StudentDirectory />} />
+        <Route path="/admin/students" element={<ProtectedRoute><StudentDirectory /> </ProtectedRoute>} />
+        <Route path="/bulk-teachers" element={<ProtectedRoute><BulkTeacherUpload /> </ProtectedRoute>} />
+        <Route path="/admin/teachers" element={<ProtectedRoute><TeacherDirectory /> </ProtectedRoute>} />
+        <Route path="/admin/subjects" element={<ProtectedRoute><SubjectManager /> </ProtectedRoute>} />
+
+
       </Routes>
     </BrowserRouter>
   );

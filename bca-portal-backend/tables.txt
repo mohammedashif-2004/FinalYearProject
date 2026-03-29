@@ -149,3 +149,5 @@ Export to Excel: Add a button to download this filtered list (e.g., TYBCA - Div 
 Global Search: Add a search bar in the Topbar that allows you to find a student by PR Number or Name across all years and divisions instantly (without having to switch the dropdowns first).
 
 Student Profile View: Create a "View Details" page where you can see even more information (like their attendance history or uploaded documents) by clicking on their name.
+
+Password: Remember that all teachers will have the default password teacher@123 (unless you changed it in the service).
