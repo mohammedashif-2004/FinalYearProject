@@ -7,14 +7,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.bcaportal.bcaportal.entity.TeacherProfile;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/timetable")
-@CrossOrigin(origins = "http://localhost:5173")
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+// TO THIS (Allow both roles at the class level):
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+@CrossOrigin(origins = "*")
 public class TimetableController {
 
     private final TimetableRepository timetableRepository;
@@ -48,7 +52,8 @@ public class TimetableController {
                 Long teacherId = Long.parseLong(tId.toString());
 
                 // Conflict Check
-                if (timetableRepository.existsByTeacherIdAndDayAndTimeSlot(teacherId, entry.getDay(), entry.getTimeSlot())) {
+                if (timetableRepository.existsByTeacherIdAndDayAndTimeSlot(teacherId, entry.getDay(),
+                        entry.getTimeSlot())) {
                     return ResponseEntity.status(409).body("Teacher is already busy during this slot!");
                 }
 
@@ -67,5 +72,30 @@ public class TimetableController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         timetableRepository.deleteById(id);
         return ResponseEntity.ok("Deleted");
+    }
+
+    // In TimetableController.java
+    @GetMapping("/teachers-with-assignments")
+    public ResponseEntity<?> getTeachersWithAssignments() {
+        // ADD THIS LINE
+        System.out.println("USER AUTHORITIES: " + org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getAuthorities());
+
+        List<TeacherProfile> teachers = teacherRepository.findAll();
+
+        List<Map<String, Object>> response = teachers.stream().map(teacher -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", teacher.getId());
+            map.put("employeeCode", teacher.getEmployeeCode());
+            map.put("fullName", teacher.getFullName());
+
+            // 2. Fetch live assignments from the repository
+            List<String> liveAssignments = timetableRepository.findActiveAssignmentsByTeacherId(teacher.getId());
+            map.put("assignments", liveAssignments);
+
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import api from "../services/api"; 
 import {
   Box, Typography, Paper, Stack, Button, Select, MenuItem,
   FormControl, InputLabel, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Chip, IconButton, Tabs, Tab, Autocomplete, Alert,
+  TextField, IconButton, Tabs, Tab, Autocomplete, Alert,
   TableContainer, Table, TableHead, TableBody, TableRow, TableCell
 } from "@mui/material";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
@@ -93,7 +92,7 @@ function TimetableGrid({ schedule = {}, timeSlots, onCellClick, onDelete, onEdit
 export default function TimeTable() {
   const [allData, setAllData] = useState({});
   const [allTeachers, setAllTeachers] = useState([]);
-  const [dbSubjects, setDbSubjects] = useState([]); // <--- Dynamic subjects from DB
+  const [dbSubjects, setDbSubjects] = useState([]); 
   const [currentClass, setCurrentClass] = useState("FYBCA");
   const [currentDiv, setCurrentDiv] = useState("A");
   const [activeTab, setActiveTab] = useState(0);
@@ -112,11 +111,14 @@ export default function TimeTable() {
       const [tRes, ttRes, subRes] = await Promise.all([
         api.get("/api/admin/teachers/all"),
         api.get("/api/admin/timetable/all"),
-        api.get("/api/admin/subjects/all") // <--- Fetch real subjects
+        api.get("/api/admin/subjects/all")
       ]);
       setAllTeachers(tRes.data || []);
-      setDbSubjects(subRes.data || []); // <--- Save subjects to state
+      setDbSubjects(subRes.data || []); 
       
+      // Debug Log: Check if subjects are actually arriving
+      console.log("Fetched Subjects:", subRes.data);
+
       const transformed = {};
       ttRes.data?.forEach(item => {
         const key = `${item.className}-${item.division}`;
@@ -166,6 +168,11 @@ export default function TimeTable() {
     setTimeSlots(updated);
     setEditSlotOpen(false);
   };
+
+  // Helper to get subjects for the class dropdown
+  const filteredSubjects = dbSubjects.filter(s => 
+    String(s.year).trim().toUpperCase() === String(currentClass).trim().toUpperCase()
+  );
 
   return (
     <Box sx={{ display: "flex", height: "100vh", bgcolor: "#f1f5f9" }}>
@@ -256,11 +263,18 @@ export default function TimeTable() {
             <>
                 <FormControl fullWidth size="small">
                     <InputLabel>Subject</InputLabel>
-                    <Select value={form.subject} label="Subject" onChange={(e) => setForm({...form, subject: e.target.value})}>
-                        {dbSubjects
-                            .filter(s => s.year === currentClass) // ONLY SHOW SUBJECTS FOR THIS CLASS
-                            .map(s => <MenuItem key={s.id} value={s.name}>{s.name}</MenuItem>)
-                        }
+                    <Select 
+                      value={form.subject} 
+                      label="Subject" 
+                      onChange={(e) => setForm({...form, subject: e.target.value})}
+                    >
+                        {/* Fallback Check: If filter returns nothing, show all subjects as debug */}
+                        {filteredSubjects.length > 0 ? (
+                          filteredSubjects.map(s => <MenuItem key={s.id} value={s.name}>{s.name}</MenuItem>)
+                        ) : (
+                          dbSubjects.map(s => <MenuItem key={s.id} value={s.name}>{s.name} ({s.year})</MenuItem>)
+                        )}
+                        <MenuItem value="BREAK">☕ BREAK</MenuItem>
                     </Select>
                 </FormControl>
                 <Autocomplete
